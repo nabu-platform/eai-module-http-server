@@ -12,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 
 import be.nabu.eai.repository.EAIResourceRepository;
+import be.nabu.eai.repository.RepositoryThreadFactory;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StartableArtifact;
@@ -71,7 +72,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							server = HTTPServerUtils.newServer(
 								getConfiguration().getPort() == null ? 80 : getConfiguration().getPort(), 
 								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
-								new EventDispatcherImpl()
+								new EventDispatcherImpl(),
+								new RepositoryThreadFactory(getRepository())
 							);
 						}
 						else {
@@ -90,7 +92,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 								getConfiguration().getPort() == null ? 443 : getConfiguration().getPort(),
 								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getPoolSize(),
 								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
-								new EventDispatcherImpl()
+								new EventDispatcherImpl(),
+								new RepositoryThreadFactory(getRepository())
 							);
 						}
 						server.setMetrics(getRepository().getMetricInstance(getId()));

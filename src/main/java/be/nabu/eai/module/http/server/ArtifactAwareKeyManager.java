@@ -60,7 +60,10 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 	 */
 	@Override
 	public String chooseEngineServerAlias(String keyType, Principal[] issuers, SSLEngine engine) {
-		List<VirtualHostArtifact> virtualHosts = getVirtualHosts();
+		// wrapped an arraylist around the virtualhosts because we had a concurrent modification exception on the iterator.remove() below
+		// that being said, why is this code here? can't we just filter the virtual hosts on the server at the time of building the virtual host list? (which is synchronized)
+		// why is this separate?
+		List<VirtualHostArtifact> virtualHosts = new ArrayList<VirtualHostArtifact>(getVirtualHosts());
 		Iterator<VirtualHostArtifact> iterator = virtualHosts.iterator();
 		while (iterator.hasNext()) {
 			try {
