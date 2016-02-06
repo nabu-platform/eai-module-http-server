@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.module.http.virtual.VirtualHostArtifact;
 import be.nabu.eai.repository.EAIResourceRepository;
-import be.nabu.eai.repository.api.Node;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.utils.io.SSLServerMode;
 
@@ -160,16 +159,7 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 		if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
 			synchronized(this) {
 				if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
-					List<VirtualHostArtifact> virtualHosts = new ArrayList<VirtualHostArtifact>();
-					for (Node node : repository.getNodes(VirtualHostArtifact.class)) {
-						try {
-							virtualHosts.add((VirtualHostArtifact) node.getArtifact());
-						}
-						catch (Exception e) {
-							logger.error("Could not load virtual host: " + node, e);
-						}
-					}
-					this.virtualHosts = virtualHosts;
+					this.virtualHosts = repository.getArtifacts(VirtualHostArtifact.class);
 				}
 			}
 		}
