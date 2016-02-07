@@ -16,6 +16,11 @@ public class HTTPServerGUIManager extends BaseJAXBGUIManager<HTTPServerConfigura
 	}
 
 	@Override
+	public String getCategory() {
+		return "Protocols";
+	}
+	
+	@Override
 	protected List<Property<?>> getCreateProperties() {
 		return null;
 	}
