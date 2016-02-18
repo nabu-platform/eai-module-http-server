@@ -108,7 +108,7 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 					logger.error("Multiple web artifacts on a secure connection but no SNI in the original request");
 					return null;
 				}
-				for (VirtualHostArtifact artifact : getVirtualHosts()) {
+				for (VirtualHostArtifact artifact : virtualHosts) {
 					try {
 						List<String> hosts = new ArrayList<String>();
 						if (artifact.getConfiguration().getHost() != null) {
