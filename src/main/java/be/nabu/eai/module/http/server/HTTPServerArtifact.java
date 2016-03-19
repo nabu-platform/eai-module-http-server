@@ -21,7 +21,7 @@ import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.server.HTTPServerUtils;
-import be.nabu.libs.http.server.nio.MemoryMessageDataProvider;
+import be.nabu.libs.http.server.nio.MultipleMessageDataProvider;
 import be.nabu.libs.nio.NIOServerUtils;
 import be.nabu.libs.nio.api.ConnectionAcceptor;
 import be.nabu.libs.nio.api.NIOServer;
@@ -35,6 +35,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	private static final String HTTP_IO_POOL_SIZE = "be.nabu.eai.http.ioPoolSize";
 	private static final String HTTP_PROCESS_POOL_SIZE = "be.nabu.eai.http.processPoolSize";
 	private Thread thread;
+	private MultipleMessageDataProvider messageDataProvider;
 	
 	public HTTPServerArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "httpServer.xml", HTTPServerConfiguration.class);
@@ -116,8 +117,12 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							((NIOServer) server).setConnectionAcceptor(connectionAcceptor);
 						}
 						if (getConfiguration().getMaxSizePerRequest() != null) {
-							server.setMessageDataProvider(new MemoryMessageDataProvider(getConfiguration().getMaxSizePerRequest()));
+							messageDataProvider = new MultipleMessageDataProvider(getConfiguration().getMaxSizePerRequest());
 						}
+						else {
+							messageDataProvider = new MultipleMessageDataProvider();
+						}
+						server.setMessageDataProvider(messageDataProvider);
 					}
 					catch (KeyManagementException e) {
 						throw new RuntimeException(e);
@@ -143,5 +148,9 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	@Override
 	public boolean isStarted() {
 		return thread != null && thread.getState() != Thread.State.TERMINATED;
+	}
+
+	public MultipleMessageDataProvider getMessageDataProvider() {
+		return messageDataProvider;
 	}
 }
