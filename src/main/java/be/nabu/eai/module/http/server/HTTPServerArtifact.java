@@ -91,7 +91,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 								context,
 								getConfiguration().getSslServerMode(),
 								getConfiguration().getPort() == null ? 443 : getConfiguration().getPort(),
-								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getPoolSize(),
+								getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize(),
 								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
 								new EventDispatcherImpl(),
 								new RepositoryThreadFactory(getRepository())
