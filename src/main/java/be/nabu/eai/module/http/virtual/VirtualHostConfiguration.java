@@ -7,16 +7,19 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import be.nabu.eai.api.EnvironmentSpecific;
+import be.nabu.eai.api.InterfaceFilter;
 import be.nabu.eai.module.http.server.HTTPServerArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
+import be.nabu.libs.services.api.DefinedService;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseSubscriber" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
 	private List<String> aliases;
 	private HTTPServerArtifact server;
+	private DefinedService requestSubscriber, responseSubscriber, requestRewriter;
 	
 	@EnvironmentSpecific
 	public String getHost() {
@@ -51,4 +54,33 @@ public class VirtualHostConfiguration {
 		this.server = server;
 	}
 	
+	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.RequestSubscriber.handle")	
+	@EnvironmentSpecific
+	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
+	public DefinedService getRequestSubscriber() {
+		return requestSubscriber;
+	}
+	public void setRequestSubscriber(DefinedService requestSubscriber) {
+		this.requestSubscriber = requestSubscriber;
+	}
+	
+	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.ResponseSubscriber.handle")	
+	@EnvironmentSpecific
+	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
+	public DefinedService getResponseSubscriber() {
+		return responseSubscriber;
+	}
+	public void setResponseSubscriber(DefinedService responseSubscriber) {
+		this.responseSubscriber = responseSubscriber;
+	}
+	
+	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.RequestRewriter.handle")	
+	@EnvironmentSpecific
+	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
+	public DefinedService getRequestRewriter() {
+		return requestRewriter;
+	}
+	public void setRequestRewriter(DefinedService requestRewriter) {
+		this.requestRewriter = requestRewriter;
+	}
 }

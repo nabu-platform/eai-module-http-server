@@ -21,6 +21,7 @@ import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.server.HTTPServerUtils;
+import be.nabu.libs.http.server.nio.NIOHTTPServer;
 import be.nabu.libs.http.server.nio.RoutingMessageDataProvider;
 import be.nabu.libs.nio.NIOServerUtils;
 import be.nabu.libs.nio.api.ConnectionAcceptor;
@@ -69,15 +70,9 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 			synchronized(this) {
 				if (server == null) {
 					try {
-						if (getConfiguration().getKeystore() == null) {
-							server = HTTPServerUtils.newServer(
-								getConfiguration().getPort() == null ? 80 : getConfiguration().getPort(), 
-								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
-								new EventDispatcherImpl(),
-								new RepositoryThreadFactory(getRepository())
-							);
-						}
-						else {
+						SSLContext context = null;
+						Integer port = getConfiguration().getPort();
+						if (getConfiguration().getKeystore() != null) {
 							KeyStoreHandler keyStoreHandler = new KeyStoreHandler(getConfiguration().getKeystore().getKeyStore().getKeyStore());
 							KeyManager[] keyManagers = keyStoreHandler.getKeyManagers();
 							for (int i = 0; i < keyManagers.length; i++) {
@@ -85,23 +80,41 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 									keyManagers[i] = new ArtifactAwareKeyManager((X509KeyManager) keyManagers[i], getRepository(), this);
 								}
 							}
-							SSLContext context = SSLContext.getInstance(SSLContextType.TLS.toString());
+							context = SSLContext.getInstance(SSLContextType.TLS.toString());
 							context.init(keyManagers, keyStoreHandler.getTrustManagers(), new SecureRandom());
-							server = HTTPServerUtils.newServer(
-								context,
-								getConfiguration().getSslServerMode(),
-								getConfiguration().getPort() == null ? 443 : getConfiguration().getPort(),
-								getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize(),
-								getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
-								new EventDispatcherImpl(),
-								new RepositoryThreadFactory(getRepository())
-							);
+							if (port == null) {
+								port = 443;
+							}
 						}
+						else if (port == null) {
+							port = 80;
+						}
+						server = new NIOHTTPServer(
+							context,
+							getConfiguration().getSslServerMode(),
+							port,
+							getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize(),
+							getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
+							new EventDispatcherImpl(),
+							new RepositoryThreadFactory(getRepository())
+						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
 						server.setExceptionFormatter(new RepositoryExceptionFormatter());
 						// make sure we encode responses as much as possible
 						if (!EAIResourceRepository.isDevelopment()) {
 							server.getDispatcher().subscribe(HTTPResponse.class, HTTPServerUtils.ensureContentEncoding());
+						}
+						if (getConfiguration().getReadTimeout() != null) {
+							((NIOHTTPServer) server).getPipelineFactory().setReadTimeout(getConfiguration().getReadTimeout());
+						}
+						if (getConfiguration().getWriteTimeout() != null) {
+							((NIOHTTPServer) server).getPipelineFactory().setReadTimeout(getConfiguration().getWriteTimeout());
+						}
+						if (getConfiguration().getRequestLimit() != null) {
+							((NIOHTTPServer) server).getPipelineFactory().setRequestLimit(getConfiguration().getRequestLimit());
+						}
+						if (getConfiguration().getResponseLimit() != null) {
+							((NIOHTTPServer) server).getPipelineFactory().setResponseLimit(getConfiguration().getResponseLimit());
 						}
 						// add connection restrictions, the 6 connections is the default for firefox & chrome
 						// IE10 apparently has 8

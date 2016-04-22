@@ -10,13 +10,15 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "keystore", "sslServerMode", "port", "poolSize", "socketTimeout", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest" })
+@XmlType(propOrder = { "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "readTimeout", "writeTimeout", "requestLimit", "responseLimit" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
 	private SSLServerMode sslServerMode;
-	private Integer poolSize, socketTimeout, ioPoolSize, maxTotalConnections, maxConnectionsPerClient;
+	private Integer poolSize, ioPoolSize, maxTotalConnections, maxConnectionsPerClient;
 	private Long maxSizePerRequest;
+	private Long readTimeout, writeTimeout;
+	private Integer requestLimit, responseLimit;
 	
 	@EnvironmentSpecific
 	public Integer getPort() {
@@ -41,13 +43,6 @@ public class HTTPServerConfiguration {
 	}
 	public void setPoolSize(Integer poolSize) {
 		this.poolSize = poolSize;
-	}
-	
-	public Integer getSocketTimeout() {
-		return socketTimeout;
-	}
-	public void setSocketTimeout(Integer socketTimeout) {
-		this.socketTimeout = socketTimeout;
 	}
 	
 	@EnvironmentSpecific
@@ -89,4 +84,36 @@ public class HTTPServerConfiguration {
 		this.maxSizePerRequest = maxSizePerRequest;
 	}
 	
+	@EnvironmentSpecific
+	public Long getReadTimeout() {
+		return readTimeout;
+	}
+	public void setReadTimeout(Long readTimeout) {
+		this.readTimeout = readTimeout;
+	}
+	
+	@EnvironmentSpecific
+	public Long getWriteTimeout() {
+		return writeTimeout;
+	}
+	public void setWriteTimeout(Long writeTimeout) {
+		this.writeTimeout = writeTimeout;
+	}
+	
+	@EnvironmentSpecific
+	public Integer getRequestLimit() {
+		return requestLimit;
+	}
+	public void setRequestLimit(Integer requestLimit) {
+		this.requestLimit = requestLimit;
+	}
+	
+	@EnvironmentSpecific
+	public Integer getResponseLimit() {
+		return responseLimit;
+	}
+	public void setResponseLimit(Integer responseLimit) {
+		this.responseLimit = responseLimit;
+	}
+
 }

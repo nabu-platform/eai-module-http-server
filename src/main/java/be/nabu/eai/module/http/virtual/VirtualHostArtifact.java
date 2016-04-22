@@ -2,17 +2,24 @@ package be.nabu.eai.module.http.virtual;
 
 import java.io.IOException;
 
+import be.nabu.eai.module.http.virtual.api.RequestRewriter;
+import be.nabu.eai.module.http.virtual.api.RequestSubscriber;
+import be.nabu.eai.module.http.virtual.api.ResponseSubscriber;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
+import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.events.api.EventDispatcher;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
+import be.nabu.libs.http.api.HTTPRequest;
+import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.resources.api.ResourceContainer;
+import be.nabu.libs.services.pojo.POJOUtils;
 
 public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> implements StartableArtifact, StoppableArtifact {
 
-	private EventDispatcher dispatcher = new EventDispatcherImpl();
+	private EventDispatcher dispatcher;
 	private boolean started;
 	
 	public VirtualHostArtifact(String id, ResourceContainer<?> directory, Repository repository) {
@@ -20,9 +27,36 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	}
 
 	public EventDispatcher getDispatcher() {
+		if (dispatcher == null) {
+			synchronized(this) {
+				if (dispatcher == null) {
+					EventDispatcher dispatcher = new EventDispatcherImpl();
+					try {
+						// allow request rewriting
+						if (getConfiguration().getRequestRewriter() != null) {
+							RequestRewriter requestRewriter = POJOUtils.newProxy(RequestRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestRewriter());
+							dispatcher.subscribe(HTTPRequest.class, requestRewriter);
+						}
+						// allow request handlers
+						if (getConfiguration().getRequestSubscriber() != null) {
+							RequestSubscriber requestSubscriber = POJOUtils.newProxy(RequestSubscriber.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestSubscriber());
+							dispatcher.subscribe(HTTPRequest.class, requestSubscriber);
+						}
+						if (getConfiguration().getResponseSubscriber() != null) {
+							ResponseSubscriber responseSubscriber = POJOUtils.newProxy(ResponseSubscriber.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getResponseSubscriber());
+							dispatcher.subscribe(HTTPResponse.class, responseSubscriber);
+						}
+						this.dispatcher = dispatcher;
+					}
+					catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
+		}
 		return dispatcher;
 	}
-
+	
 	@Override
 	public void stop() throws IOException {
 		if (started && getConfiguration().getServer() != null) {
@@ -45,15 +79,15 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	public void start() throws IOException {
 		if (getConfiguration().getServer() != null) {
 			if (getConfiguration().getHost() != null) {
-				getConfiguration().getServer().getServer().route(getConfiguration().getHost(), dispatcher);
+				getConfiguration().getServer().getServer().route(getConfiguration().getHost(), getDispatcher());
 				if (getConfiguration().getAliases() != null) {
 					for (String host : getConfiguration().getAliases()) {
-						getConfiguration().getServer().getServer().route(host, dispatcher);
+						getConfiguration().getServer().getServer().route(host, getDispatcher());
 					}
 				}
 			}
 			else {
-				getConfiguration().getServer().getServer().route(null, dispatcher);
+				getConfiguration().getServer().getServer().route(null, getDispatcher());
 			}
 			started = true;
 		}
