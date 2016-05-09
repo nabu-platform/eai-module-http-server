@@ -19,9 +19,9 @@ import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.nio.impl.MessagePipelineImpl;
 import be.nabu.libs.services.api.ExecutionContext;
-import nabu.protocols.http.server.types.HTTPConnectionInformation;
-import nabu.protocols.http.server.types.HTTPRequestSummary;
-import nabu.protocols.http.server.types.HTTPResponseSummary;
+import nabu.protocols.http.server.types.HttpConnectionInformation;
+import nabu.protocols.http.server.types.HttpRequestSummary;
+import nabu.protocols.http.server.types.HttpResponseSummary;
 
 @WebService
 public class Services {
@@ -29,30 +29,30 @@ public class Services {
 	private ExecutionContext executionContext;
 	
 	@SuppressWarnings("unchecked")
-	public List<HTTPConnectionInformation> connections(@NotNull @WebParam(name = "serverId") String serverId) {
+	public List<HttpConnectionInformation> connections(@NotNull @WebParam(name = "serverId") String serverId) {
 		HTTPServerArtifact resolved = executionContext.getServiceContext().getResolver(HTTPServerArtifact.class).resolve(serverId);
 		if (resolved == null) {
 			throw new IllegalArgumentException("Could not find server: " + serverId);
 		}
-		List<HTTPConnectionInformation> connections = new ArrayList<HTTPConnectionInformation>();
+		List<HttpConnectionInformation> connections = new ArrayList<HttpConnectionInformation>();
 		for (Pipeline pipeline : ((NIOHTTPServer) resolved.getServer()).getPipelines()) {
 			SourceContext sourceContext = pipeline.getSourceContext();
 			InetSocketAddress remoteSocketAddress = ((InetSocketAddress) sourceContext.getSocket().getRemoteSocketAddress());
-			HTTPConnectionInformation connection = new HTTPConnectionInformation();
+			HttpConnectionInformation connection = new HttpConnectionInformation();
 			connection.setCreated(sourceContext.getCreated());
 			connection.setRemoteHost(remoteSocketAddress.getHostString());
 			connection.setRemotePort(remoteSocketAddress.getPort());
 			connection.setLocalPort(sourceContext.getSocket().getLocalPort());
 			if (pipeline instanceof MessagePipelineImpl) {
 				if (((MessagePipelineImpl<?, ?>) pipeline).getMessageProcessorFactory() instanceof HTTPProcessorFactory) {
-					List<HTTPRequestSummary> requests = new ArrayList<HTTPRequestSummary>();
+					List<HttpRequestSummary> requests = new ArrayList<HttpRequestSummary>();
 					for (HTTPRequest request : (((MessagePipeline<HTTPRequest, HTTPResponse>) pipeline).getRequestQueue())) {
-						requests.add(HTTPRequestSummary.build(request));
+						requests.add(HttpRequestSummary.build(request));
 					}
 					connection.setRequests(requests);
-					List<HTTPResponseSummary> responses = new ArrayList<HTTPResponseSummary>();
+					List<HttpResponseSummary> responses = new ArrayList<HttpResponseSummary>();
 					for (HTTPResponse response : (((MessagePipeline<HTTPRequest, HTTPResponse>) pipeline).getResponseQueue())) {
-						responses.add(HTTPResponseSummary.build(response));
+						responses.add(HttpResponseSummary.build(response));
 					}
 					connection.setResponses(responses);
 				}

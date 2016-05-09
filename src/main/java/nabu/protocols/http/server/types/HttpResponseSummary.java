@@ -13,9 +13,9 @@ import be.nabu.utils.mime.api.Header;
 
 @XmlRootElement
 @XmlType(propOrder = { "code", "message", "version", "created", "headers" })
-public class HTTPResponseSummary {
-	public static HTTPResponseSummary build(HTTPResponse response) {
-		HTTPResponseSummary summary = new HTTPResponseSummary();
+public class HttpResponseSummary {
+	public static HttpResponseSummary build(HTTPResponse response) {
+		HttpResponseSummary summary = new HttpResponseSummary();
 		summary.setMessage(response.getMessage());
 		summary.setCode(response.getCode());
 		summary.setVersion(response.getVersion());

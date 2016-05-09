@@ -13,9 +13,9 @@ import be.nabu.utils.mime.api.Header;
 
 @XmlRootElement
 @XmlType(propOrder = { "method", "target", "version", "created", "headers" })
-public class HTTPRequestSummary {
-	public static HTTPRequestSummary build(HTTPRequest request) {
-		HTTPRequestSummary summary = new HTTPRequestSummary();
+public class HttpRequestSummary {
+	public static HttpRequestSummary build(HTTPRequest request) {
+		HttpRequestSummary summary = new HttpRequestSummary();
 		summary.setMethod(request.getMethod());
 		summary.setTarget(request.getTarget());
 		summary.setVersion(request.getVersion());
