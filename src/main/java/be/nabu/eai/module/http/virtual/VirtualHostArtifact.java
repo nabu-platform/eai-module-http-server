@@ -58,8 +58,8 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 								}
 							});
 						}
-						if (getConfiguration().getResponseSubscriber() != null) {
-							final ResponseRewriter responseSubscriber = POJOUtils.newProxy(ResponseRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getResponseSubscriber());
+						if (getConfiguration().getResponseRewriter() != null) {
+							final ResponseRewriter responseSubscriber = POJOUtils.newProxy(ResponseRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getResponseRewriter());
 							dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
 								@Override
 								public HTTPResponse handle(HTTPResponse event) {
