@@ -1,9 +1,11 @@
 package be.nabu.eai.module.http.virtual.api;
 
-import be.nabu.libs.events.api.EventHandler;
+import javax.jws.WebParam;
+import javax.jws.WebResult;
+
 import be.nabu.libs.http.api.HTTPRequest;
 
-public interface RequestRewriter extends EventHandler<HTTPRequest, HTTPRequest> {
-	@Override
-	public HTTPRequest handle(HTTPRequest response);
+public interface RequestRewriter {
+	@WebResult(name = "request")
+	public HTTPRequest handle(@WebParam(name = "source") Source source, @WebParam(name = "request") HTTPRequest request);
 }

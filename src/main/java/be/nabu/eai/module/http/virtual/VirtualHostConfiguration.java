@@ -13,13 +13,13 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.libs.services.api.DefinedService;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseSubscriber" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
 	private List<String> aliases;
 	private HTTPServerArtifact server;
-	private DefinedService requestSubscriber, responseSubscriber, requestRewriter;
+	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	
 	@EnvironmentSpecific
 	public String getHost() {
@@ -67,11 +67,11 @@ public class VirtualHostConfiguration {
 	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.ResponseSubscriber.handle")	
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
-	public DefinedService getResponseSubscriber() {
-		return responseSubscriber;
+	public DefinedService getResponseRewriter() {
+		return responseRewriter;
 	}
-	public void setResponseSubscriber(DefinedService responseSubscriber) {
-		this.responseSubscriber = responseSubscriber;
+	public void setResponseRewriter(DefinedService responseRewriter) {
+		this.responseRewriter = responseRewriter;
 	}
 	
 	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.RequestRewriter.handle")	

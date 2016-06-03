@@ -4,16 +4,20 @@ import java.io.IOException;
 
 import be.nabu.eai.module.http.virtual.api.RequestRewriter;
 import be.nabu.eai.module.http.virtual.api.RequestSubscriber;
-import be.nabu.eai.module.http.virtual.api.ResponseSubscriber;
+import be.nabu.eai.module.http.virtual.api.ResponseRewriter;
+import be.nabu.eai.module.http.virtual.api.SourceImpl;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.events.api.EventDispatcher;
+import be.nabu.libs.events.api.EventHandler;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
+import be.nabu.libs.nio.PipelineUtils;
+import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.services.pojo.POJOUtils;
 
@@ -34,17 +38,35 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 					try {
 						// allow request rewriting
 						if (getConfiguration().getRequestRewriter() != null) {
-							RequestRewriter requestRewriter = POJOUtils.newProxy(RequestRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestRewriter());
-							dispatcher.subscribe(HTTPRequest.class, requestRewriter);
+							final RequestRewriter requestRewriter = POJOUtils.newProxy(RequestRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestRewriter());
+							dispatcher.subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPRequest>() {
+								@Override
+								public HTTPRequest handle(HTTPRequest event) {
+									SourceContext sourceContext = PipelineUtils.getPipeline().getSourceContext();
+									return requestRewriter.handle(new SourceImpl(sourceContext), event);
+								}
+							});
 						}
 						// allow request handlers
 						if (getConfiguration().getRequestSubscriber() != null) {
-							RequestSubscriber requestSubscriber = POJOUtils.newProxy(RequestSubscriber.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestSubscriber());
-							dispatcher.subscribe(HTTPRequest.class, requestSubscriber);
+							final RequestSubscriber requestSubscriber = POJOUtils.newProxy(RequestSubscriber.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestSubscriber());
+							dispatcher.subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPRequest event) {
+									SourceContext sourceContext = PipelineUtils.getPipeline().getSourceContext();
+									return requestSubscriber.handle(new SourceImpl(sourceContext), event);
+								}
+							});
 						}
 						if (getConfiguration().getResponseSubscriber() != null) {
-							ResponseSubscriber responseSubscriber = POJOUtils.newProxy(ResponseSubscriber.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getResponseSubscriber());
-							dispatcher.subscribe(HTTPResponse.class, responseSubscriber);
+							final ResponseRewriter responseSubscriber = POJOUtils.newProxy(ResponseRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getResponseSubscriber());
+							dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPResponse event) {
+									SourceContext sourceContext = PipelineUtils.getPipeline().getSourceContext();
+									return responseSubscriber.handle(new SourceImpl(sourceContext), event);
+								}
+							});
 						}
 						this.dispatcher = dispatcher;
 					}
