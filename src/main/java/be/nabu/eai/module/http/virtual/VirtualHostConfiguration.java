@@ -64,7 +64,7 @@ public class VirtualHostConfiguration {
 		this.requestSubscriber = requestSubscriber;
 	}
 	
-	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.ResponseSubscriber.handle")	
+	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.ResponseRewriter.handle")	
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	public DefinedService getResponseRewriter() {
