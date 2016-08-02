@@ -42,7 +42,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		super(id, directory, repository, "httpServer.xml", HTTPServerConfiguration.class);
 	}
 
-	private HTTPServer server;
+	private NIOHTTPServer server;
 	
 	@Override
 	public void stop() throws IOException {
@@ -100,6 +100,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
 						server.setExceptionFormatter(new RepositoryExceptionFormatter());
+						server.setMaxIdleTime(getConfiguration().getIdleTimeout());
+						server.setMaxLifeTime(getConfiguration().getLifetime());
 						// make sure we encode responses as much as possible
 						if (!EAIResourceRepository.isDevelopment()) {
 							server.getDispatcher().subscribe(HTTPResponse.class, HTTPServerUtils.ensureContentEncoding());

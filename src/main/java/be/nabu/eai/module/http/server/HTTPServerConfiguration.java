@@ -17,7 +17,7 @@ public class HTTPServerConfiguration {
 	private SSLServerMode sslServerMode;
 	private Integer poolSize, ioPoolSize, maxTotalConnections, maxConnectionsPerClient;
 	private Long maxSizePerRequest;
-	private Long readTimeout, writeTimeout;
+	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
 	
 	@EnvironmentSpecific
@@ -115,5 +115,16 @@ public class HTTPServerConfiguration {
 	public void setResponseLimit(Integer responseLimit) {
 		this.responseLimit = responseLimit;
 	}
-
+	public Long getIdleTimeout() {
+		return idleTimeout;
+	}
+	public void setIdleTimeout(Long idleTimeout) {
+		this.idleTimeout = idleTimeout;
+	}
+	public Long getLifetime() {
+		return lifetime;
+	}
+	public void setLifetime(Long lifetime) {
+		this.lifetime = lifetime;
+	}
 }
