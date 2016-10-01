@@ -11,8 +11,13 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.RepositoryThreadFactory;
+import be.nabu.eai.repository.api.LicenseManager;
+import be.nabu.eai.repository.api.LicensedRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StartableArtifact;
@@ -33,10 +38,13 @@ import be.nabu.utils.security.SSLContextType;
 
 public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements StartableArtifact, StoppableArtifact {
 
+	public static final String MODULE = "nabu.protocols.http.server";
+	
 	private static final String HTTP_IO_POOL_SIZE = "be.nabu.eai.http.ioPoolSize";
 	private static final String HTTP_PROCESS_POOL_SIZE = "be.nabu.eai.http.processPoolSize";
 	private Thread thread;
 	private RoutingMessageDataProvider messageDataProvider;
+	private Logger logger = LoggerFactory.getLogger(getClass());
 	
 	public HTTPServerArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "httpServer.xml", HTTPServerConfiguration.class);
@@ -89,12 +97,24 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						else if (port == null) {
 							port = 80;
 						}
+						Integer ioPoolSize = getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize();
+						Integer processPoolSize = getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize();
+						
+						if (getRepository() instanceof LicensedRepository) {
+							LicenseManager manager = ((LicensedRepository) getRepository()).getLicenseManager();
+							if (manager == null || !manager.isLicensed(MODULE)) {
+								ioPoolSize = Math.min(2, ioPoolSize);
+								processPoolSize = Math.min(5, processPoolSize);
+								logger.warn("No license found for the http server module, it is running with reduced capacity");
+							}
+						}
+						
 						server = new NIOHTTPServer(
 							context,
 							getConfiguration().getSslServerMode(),
 							port,
-							getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize(),
-							getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize(),
+							ioPoolSize,
+							processPoolSize,
 							new EventDispatcherImpl(),
 							new RepositoryThreadFactory(getRepository())
 						);
