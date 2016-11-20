@@ -37,12 +37,12 @@ public class Services {
 		List<HttpConnectionInformation> connections = new ArrayList<HttpConnectionInformation>();
 		for (Pipeline pipeline : ((NIOHTTPServer) resolved.getServer()).getPipelines()) {
 			SourceContext sourceContext = pipeline.getSourceContext();
-			InetSocketAddress remoteSocketAddress = ((InetSocketAddress) sourceContext.getSocket().getRemoteSocketAddress());
+			InetSocketAddress remoteSocketAddress = ((InetSocketAddress) sourceContext.getSocketAddress());
 			HttpConnectionInformation connection = new HttpConnectionInformation();
 			connection.setCreated(sourceContext.getCreated());
 			connection.setRemoteHost(remoteSocketAddress.getHostString());
 			connection.setRemotePort(remoteSocketAddress.getPort());
-			connection.setLocalPort(sourceContext.getSocket().getLocalPort());
+			connection.setLocalPort(sourceContext.getLocalPort());
 			if (pipeline instanceof MessagePipelineImpl) {
 				if (((MessagePipelineImpl<?, ?>) pipeline).getMessageProcessorFactory() instanceof HTTPProcessorFactory) {
 					List<HttpRequestSummary> requests = new ArrayList<HttpRequestSummary>();
@@ -74,7 +74,7 @@ public class Services {
 			}
 			else {
 				SourceContext sourceContext = pipeline.getSourceContext();
-				InetSocketAddress remoteSocketAddress = ((InetSocketAddress) sourceContext.getSocket().getRemoteSocketAddress());
+				InetSocketAddress remoteSocketAddress = ((InetSocketAddress) sourceContext.getSocketAddress());
 				if (host.equals(remoteSocketAddress.getHostString()) && (port == null || port.equals(remoteSocketAddress.getPort()))) {
 					pipelinesToDisconnect.add(pipeline);
 				}

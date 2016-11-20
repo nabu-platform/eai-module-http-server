@@ -59,11 +59,13 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 
 	@Override
 	public void start() throws IOException {
+		// build the server in the main thread to prevent classloader deadlocks cross thread
+		final HTTPServer server = getServer();
 		thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					getServer().start();
+					server.start();
 				}
 				catch (IOException e) {
 					throw new RuntimeException(e);
