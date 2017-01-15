@@ -6,6 +6,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import be.nabu.eai.api.Advanced;
+import be.nabu.eai.api.Comment;
 import be.nabu.eai.api.EnvironmentSpecific;
 import be.nabu.eai.api.InterfaceFilter;
 import be.nabu.eai.module.http.server.HTTPServerArtifact;
@@ -21,6 +23,7 @@ public class VirtualHostConfiguration {
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	
+	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
 	public String getHost() {
 		return host;
@@ -29,6 +32,7 @@ public class VirtualHostConfiguration {
 		this.host = host;
 	}
 	
+	@Comment(title = "Aliases for the host name, this allows for additional valid host names to arrive at this virtual host")
 	@EnvironmentSpecific
 	public List<String> getAliases() {
 		return aliases;
@@ -37,6 +41,7 @@ public class VirtualHostConfiguration {
 		this.aliases = aliases;
 	}
 	
+	@Comment(title = "The alias of the private key for the SSL connection in the keystore configured in the server")
 	@EnvironmentSpecific
 	public String getKeyAlias() {
 		return keyAlias;
@@ -45,6 +50,7 @@ public class VirtualHostConfiguration {
 		this.keyAlias = keyAlias;
 	}
 	
+	@Comment(title = "The server this virtual host is operating on")
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	public HTTPServerArtifact getServer() {
@@ -54,6 +60,8 @@ public class VirtualHostConfiguration {
 		this.server = server;
 	}
 	
+	@Advanced
+	@Comment(title = "Allows you to subscribe to all incoming requests")
 	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.RequestSubscriber.handle")	
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
@@ -64,6 +72,8 @@ public class VirtualHostConfiguration {
 		this.requestSubscriber = requestSubscriber;
 	}
 	
+	@Advanced
+	@Comment(title = "Allows you to rewrite responses before they are sent to the client")
 	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.ResponseRewriter.handle")	
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
@@ -74,6 +84,8 @@ public class VirtualHostConfiguration {
 		this.responseRewriter = responseRewriter;
 	}
 	
+	@Advanced
+	@Comment(title = "Allows you to rewrite requests before they are sent to the web application")
 	@InterfaceFilter(implement = "be.nabu.eai.module.http.virtual.api.RequestRewriter.handle")	
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
