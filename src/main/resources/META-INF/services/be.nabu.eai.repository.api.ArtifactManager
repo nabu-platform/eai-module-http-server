@@ -1,2 +1,3 @@
 be.nabu.eai.module.http.server.HTTPServerManager
 be.nabu.eai.module.http.virtual.VirtualHostManager
+be.nabu.eai.module.http.redirect.RedirectArtifactManager

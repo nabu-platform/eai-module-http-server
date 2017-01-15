@@ -4,6 +4,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import be.nabu.eai.api.Advanced;
+import be.nabu.eai.api.Comment;
 import be.nabu.eai.api.EnvironmentSpecific;
 import be.nabu.eai.module.keystore.KeyStoreArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
@@ -20,6 +22,7 @@ public class HTTPServerConfiguration {
 	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
 	
+	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
 	public Integer getPort() {
 		return port;
@@ -28,6 +31,7 @@ public class HTTPServerConfiguration {
 		this.port = port;
 	}
 	
+	@Comment(title = "You can enable ssl by configuring a keystore here and setting the alias to the correct key on each virtual host")
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	public KeyStoreArtifact getKeystore() {
@@ -37,6 +41,7 @@ public class HTTPServerConfiguration {
 		this.keystore = keystore;
 	}
 	
+	@Comment(title = "The amount of threads that the server has to process incoming requests, the default is 10", description = "The default can be overwritten using the system property 'be.nabu.eai.http.processPoolSize'")
 	@EnvironmentSpecific
 	public Integer getPoolSize() {
 		return poolSize;
@@ -45,6 +50,8 @@ public class HTTPServerConfiguration {
 		this.poolSize = poolSize;
 	}
 	
+	@Comment(title = "This option lets you decide what to do with client certificates.")
+	@Advanced
 	@EnvironmentSpecific
 	public SSLServerMode getSslServerMode() {
 		return sslServerMode;
@@ -53,6 +60,7 @@ public class HTTPServerConfiguration {
 		this.sslServerMode = sslServerMode;
 	}
 	
+	@Comment(title = "The amount of threads the server has to communicate with the client (both incoming and outgoing), the default is 5", description = "The default can be overwritten using the system property 'be.nabu.eai.http.ioPoolSize'")
 	@EnvironmentSpecific
 	public Integer getIoPoolSize() {
 		return ioPoolSize;
@@ -61,6 +69,8 @@ public class HTTPServerConfiguration {
 		this.ioPoolSize = ioPoolSize;
 	}
 	
+	@Advanced
+	@Comment(title = "The maximum amount of connections this server will accept, the default is unlimited")
 	@EnvironmentSpecific
 	public Integer getMaxTotalConnections() {
 		return maxTotalConnections;
@@ -69,6 +79,8 @@ public class HTTPServerConfiguration {
 		this.maxTotalConnections = maxTotalConnections;
 	}
 	
+	@Advanced
+	@Comment(title = "The maximum amount of connections this server will accept per client, the default is unlimited")
 	@EnvironmentSpecific
 	public Integer getMaxConnectionsPerClient() {
 		return maxConnectionsPerClient;
@@ -77,6 +89,8 @@ public class HTTPServerConfiguration {
 		this.maxConnectionsPerClient = maxConnectionsPerClient;
 	}
 	
+	@Comment(title = "The maximum size of an incoming request in bytes, anything above this will be cut off")
+	@Advanced
 	public Long getMaxSizePerRequest() {
 		return maxSizePerRequest;
 	}
@@ -84,6 +98,8 @@ public class HTTPServerConfiguration {
 		this.maxSizePerRequest = maxSizePerRequest;
 	}
 	
+	@Advanced
+	@Comment(title = "The maximum amount of time it can take for a single request to make it to the server, measured from the arrival of the first byte. The default is unlimited.")
 	@EnvironmentSpecific
 	public Long getReadTimeout() {
 		return readTimeout;
@@ -92,6 +108,8 @@ public class HTTPServerConfiguration {
 		this.readTimeout = readTimeout;
 	}
 	
+	@Advanced
+	@Comment(title = "The maximum amount of time it can take for a single response to make it to the client, measured from the departure of the first byte. The default is unlimited.")
 	@EnvironmentSpecific
 	public Long getWriteTimeout() {
 		return writeTimeout;
@@ -100,6 +118,8 @@ public class HTTPServerConfiguration {
 		this.writeTimeout = writeTimeout;
 	}
 	
+	@Advanced
+	@Comment(title = "The maximum amount of requests that can be queued for processing for a given connection. The default is unlimited.")
 	@EnvironmentSpecific
 	public Integer getRequestLimit() {
 		return requestLimit;
@@ -108,6 +128,8 @@ public class HTTPServerConfiguration {
 		this.requestLimit = requestLimit;
 	}
 	
+	@Comment(title = "The maximum amount of responses that can be queued for a given connection. The default is unlimited.")
+	@Advanced
 	@EnvironmentSpecific
 	public Integer getResponseLimit() {
 		return responseLimit;
@@ -115,12 +137,16 @@ public class HTTPServerConfiguration {
 	public void setResponseLimit(Integer responseLimit) {
 		this.responseLimit = responseLimit;
 	}
+	
+	@Comment(title = "How long a connection can be idle before it is disconnected by the server, the default is 5 minutes. If set to 0 it will never time out.")
 	public Long getIdleTimeout() {
 		return idleTimeout;
 	}
 	public void setIdleTimeout(Long idleTimeout) {
 		this.idleTimeout = idleTimeout;
 	}
+	
+	@Comment(title = "How long a connection (even an active one) can exist before it is disconnected by the server, the default is 1 hour. If set to 0 it will never be disconnected.")
 	public Long getLifetime() {
 		return lifetime;
 	}
