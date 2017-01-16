@@ -35,7 +35,6 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 
 	@Override
 	public void start() throws IOException {
-		System.out.println("------------------------------------------> STARTING " + getId());
 		if (subscription == null && getConfig().getFromHost() != null) {
 			subscription = getConfig().getFromHost().getDispatcher().subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
 				@Override
@@ -44,7 +43,6 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 						boolean fromSecure = getConfig().getFromHost().getConfig().getKeyAlias() != null && getConfig().getFromHost().getConfig().getServer() != null
 							&& getConfig().getFromHost().getConfig().getServer().getConfig().getKeystore() != null;
 						URI uri = HTTPUtils.getURI(request, fromSecure);
-						System.out.println("URI IS: " + uri);
 						if (getConfig().getFromPath() == null || uri.getPath().matches(getConfig().getFromPath())) {
 							if (getConfig().getToPath() != null) {
 								uri = uri.resolve(getConfig().getToPath());
