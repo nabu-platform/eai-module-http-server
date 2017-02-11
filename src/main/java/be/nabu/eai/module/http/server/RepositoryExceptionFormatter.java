@@ -74,7 +74,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			server.getRepository().getEventDispatcher().fire(notification, server);
 		}
 		catch (Exception e) {
-			// do nothing
+			logger.error("Could not send notification", e);
 		}
 		
 		logger.error("HTTP Exception " + exception.getCode(), exception);
