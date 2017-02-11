@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.repository.EAIResourceRepository;
+import be.nabu.eai.repository.Notification;
 import be.nabu.libs.http.HTTPCodes;
 import be.nabu.libs.http.HTTPException;
 import be.nabu.libs.http.api.HTTPRequest;
@@ -35,6 +37,7 @@ import be.nabu.libs.types.binding.json.JSONBinding;
 import be.nabu.libs.types.binding.xml.XMLBinding;
 import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanResolver;
+import be.nabu.libs.validator.api.ValidationMessage.Severity;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.mime.api.ModifiablePart;
 import be.nabu.utils.mime.impl.MimeHeader;
@@ -49,10 +52,31 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 	
 	private List<String> whitelistedCodes = new ArrayList<String>();
 	private Map<String, List<String>> artifactCodes = new HashMap<String, List<String>>();
+	private HTTPServerArtifact server;
+	
+	public RepositoryExceptionFormatter(HTTPServerArtifact server) {
+		this.server = server;
+	}
 	
 	@Override
 	public HTTPResponse format(HTTPRequest request, Exception originalException) {
 		HTTPException exception = originalException instanceof HTTPException ? (HTTPException) originalException : new HTTPException(500, originalException);
+		
+		try {
+			// fire a notification
+			Notification notification = new Notification();
+			notification.setContext(Arrays.asList(server.getId()));
+			notification.setCode(exception.getCode());
+			notification.setProperties(request);
+			notification.setMessage("Request failed");
+			notification.setDescription(Notification.format(originalException));
+			notification.setSeverity(Severity.ERROR);
+			server.getRepository().getEventDispatcher().fire(notification, server);
+		}
+		catch (Exception e) {
+			// do nothing
+		}
+		
 		logger.error("HTTP Exception " + exception.getCode(), exception);
 		List<String> requestedTypes = new ArrayList<String>();
 		List<String> requestedCharsets = new ArrayList<String>();

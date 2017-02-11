@@ -121,7 +121,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							new RepositoryThreadFactory(getRepository())
 						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
-						server.setExceptionFormatter(new RepositoryExceptionFormatter());
+						server.setExceptionFormatter(new RepositoryExceptionFormatter(this));
 						server.setMaxIdleTime(getConfiguration().getIdleTimeout());
 						server.setMaxLifeTime(getConfiguration().getLifetime());
 						// make sure we encode responses as much as possible
