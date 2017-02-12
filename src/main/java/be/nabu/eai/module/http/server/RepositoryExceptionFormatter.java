@@ -15,6 +15,8 @@ import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import nabu.protocols.http.server.types.HttpRequestSummary;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +69,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			Notification notification = new Notification();
 			notification.setContext(Arrays.asList(server.getId(), "nabu.protocols.http.server"));
 			notification.setCode(exception.getCode());
-			notification.setProperties(request);
+			notification.setProperties(HttpRequestSummary.build(request));
 			notification.setMessage("Request failed");
 			notification.setDescription(Notification.format(originalException));
 			notification.setSeverity(Severity.ERROR);
