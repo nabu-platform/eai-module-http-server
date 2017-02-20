@@ -67,7 +67,9 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		try {
 			// fire a notification
 			Notification notification = new Notification();
-			notification.setContext(Arrays.asList(server.getId(), "nabu.protocols.http.server"));
+			notification.setContext(Arrays.asList(server.getId()));
+			// differentiate between client and server errors
+			notification.setType("nabu.protocols.http.server." + (exception.getCode() < 500 ? "client" : "server"));
 			notification.setCode(exception.getCode());
 			notification.setProperties(HttpRequestSummary.build(request));
 			notification.setMessage("Request failed");
