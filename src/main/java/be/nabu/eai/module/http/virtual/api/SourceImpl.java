@@ -17,9 +17,11 @@ public class SourceImpl implements Source {
 	
 	public SourceImpl(SourceContext context) {
 		InetSocketAddress remoteSocketAddress = ((InetSocketAddress) context.getSocketAddress());
-		this.remoteIp = remoteSocketAddress.getAddress().getHostAddress();
-		this.remoteHost = remoteSocketAddress.getHostName();
-		this.remotePort = remoteSocketAddress.getPort();
+		if (remoteSocketAddress != null) {
+			this.remoteIp = remoteSocketAddress.getAddress().getHostAddress();
+			this.remoteHost = remoteSocketAddress.getHostName();
+			this.remotePort = remoteSocketAddress.getPort();
+		}
 		this.localPort = context.getLocalPort();
 		this.created = context.getCreated();
 	}

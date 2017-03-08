@@ -12,7 +12,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -21,6 +21,7 @@ public class HTTPServerConfiguration {
 	private Long maxSizePerRequest;
 	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
+	private boolean enabled = true;
 	
 	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
@@ -153,4 +154,13 @@ public class HTTPServerConfiguration {
 	public void setLifetime(Long lifetime) {
 		this.lifetime = lifetime;
 	}
+	
+	@EnvironmentSpecific
+	public boolean isEnabled() {
+		return enabled;
+	}
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+	
 }
