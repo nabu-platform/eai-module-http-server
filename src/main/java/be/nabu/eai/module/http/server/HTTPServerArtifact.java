@@ -26,6 +26,7 @@ import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.server.HTTPServerUtils;
+import be.nabu.libs.http.server.nio.HTTPPipelineFactoryImpl;
 import be.nabu.libs.http.server.nio.NIOHTTPServer;
 import be.nabu.libs.http.server.nio.RoutingMessageDataProvider;
 import be.nabu.libs.nio.NIOServerUtils;
@@ -124,8 +125,12 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
 						server.setExceptionFormatter(new RepositoryExceptionFormatter(this));
-						server.setMaxIdleTime(getConfiguration().getIdleTimeout());
-						server.setMaxLifeTime(getConfiguration().getLifetime());
+						if (getConfiguration().getIdleTimeout() != null) {
+							server.setMaxIdleTime(getConfiguration().getIdleTimeout());
+						}
+						if (getConfiguration().getLifetime() != null) {
+							server.setMaxLifeTime(getConfiguration().getLifetime());
+						}
 						// make sure we encode responses as much as possible
 						if (!EAIResourceRepository.isDevelopment()) {
 							server.getDispatcher().subscribe(HTTPResponse.class, HTTPServerUtils.ensureContentEncoding());
@@ -141,6 +146,16 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						}
 						if (getConfiguration().getResponseLimit() != null) {
 							((NIOHTTPServer) server).getPipelineFactory().setResponseLimit(getConfiguration().getResponseLimit());
+						}
+						// set limits
+						if (getConfig().getMaxChunkSize() != null) {
+							((HTTPPipelineFactoryImpl) server.getPipelineFactory()).setMaxChunkSize(getConfig().getMaxChunkSize());
+						}
+						if (getConfig().getMaxHeaderSize() != null) {
+							((HTTPPipelineFactoryImpl) server.getPipelineFactory()).setMaxHeaderSize(getConfig().getMaxHeaderSize());
+						}
+						if (getConfig().getMaxInitialLineLength() != null) {
+							((HTTPPipelineFactoryImpl) server.getPipelineFactory()).setMaxInitialLineLength(getConfig().getMaxInitialLineLength());
 						}
 						// add connection restrictions, the 6 connections is the default for firefox & chrome
 						// IE10 apparently has 8

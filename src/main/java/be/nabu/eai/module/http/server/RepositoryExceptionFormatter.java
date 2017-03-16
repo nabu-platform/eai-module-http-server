@@ -13,7 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 import nabu.protocols.http.server.types.HttpRequestSummary;
 
@@ -202,16 +204,21 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 	}
 	
 	@XmlRootElement(name = "exception")
+	@XmlType(propOrder = { "code", "message", "description" })
 	public static class StructuredResponse {
 		private String code;
 		private String message;
 		private String description;
+		
+		@NotNull
 		public String getCode() {
 			return code;
 		}
 		public void setCode(String code) {
 			this.code = code;
 		}
+		
+		@NotNull
 		public String getMessage() {
 			return message;
 		}

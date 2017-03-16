@@ -12,7 +12,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -22,6 +22,9 @@ public class HTTPServerConfiguration {
 	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
 	private boolean enabled = true;
+	private Integer maxInitialLineLength;
+	private Integer maxHeaderSize;
+	private Integer maxChunkSize;
 	
 	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
@@ -161,6 +164,30 @@ public class HTTPServerConfiguration {
 	}
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+	
+	@Advanced
+	public Integer getMaxInitialLineLength() {
+		return maxInitialLineLength;
+	}
+	public void setMaxInitialLineLength(Integer maxInitialLineLength) {
+		this.maxInitialLineLength = maxInitialLineLength;
+	}
+	
+	@Advanced
+	public Integer getMaxHeaderSize() {
+		return maxHeaderSize;
+	}
+	public void setMaxHeaderSize(Integer maxHeaderSize) {
+		this.maxHeaderSize = maxHeaderSize;
+	}
+	
+	@Advanced
+	public Integer getMaxChunkSize() {
+		return maxChunkSize;
+	}
+	public void setMaxChunkSize(Integer maxChunkSize) {
+		this.maxChunkSize = maxChunkSize;
 	}
 	
 }
