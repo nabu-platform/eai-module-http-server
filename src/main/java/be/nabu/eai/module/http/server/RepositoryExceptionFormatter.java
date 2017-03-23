@@ -120,18 +120,19 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		MarshallableBinding binding = null;
 		String contentType = "text/html";
 		ComplexType resolved = (ComplexType) BeanResolver.getInstance().resolve(StructuredResponse.class);
-		// a default browser will likely send both a request for HTML and XML
-		// we want the HTML view for anyone approaching through the browser
-		// if you specifically want XML, don't include HTML in the list
-		if (!requestedTypes.contains("text/html")) {
-			if (requestedTypes.contains("application/xml")) {
-				binding = new XMLBinding(resolved, charset);
-				contentType = "application/xml";
-			}
-			else if (requestedTypes.contains("application/json")) {
-				binding = new JSONBinding(resolved, charset);
-				contentType = "application/json";
-			}
+		// a default browser will likely send both a request for HTML and XML but should (hopefully) be in the correct order
+		// note that they do generally send a q but that requires further processing
+		int htmlIndex = requestedTypes.indexOf("text/html");
+		int xmlIndex = requestedTypes.indexOf("application/xml");
+		int jsonIndex = requestedTypes.indexOf("application/json");
+		// if you requested json and it is before the html (if any), use that
+		if (jsonIndex >= 0 && (htmlIndex < 0 || jsonIndex < htmlIndex)) {
+			binding = new JSONBinding(resolved, charset);
+			contentType = "application/json";
+		}
+		else if (xmlIndex >= 0 && (htmlIndex < 0 || xmlIndex < htmlIndex)) {
+			binding = new XMLBinding(resolved, charset);
+			contentType = "application/xml";
 		}
 		if (binding == null) {
 			binding = new TemplateMarshallableBinding(errorTemplates.containsKey(exception.getCode()) ? errorTemplates.get(exception.getCode()) : defaultErrorTemplate, charset);
