@@ -6,14 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.jws.WebParam;
+import javax.jws.WebResult;
 import javax.jws.WebService;
 import javax.validation.constraints.NotNull;
 
 import be.nabu.eai.module.http.server.HTTPServerArtifact;
+import be.nabu.eai.module.http.virtual.api.Source;
+import be.nabu.eai.module.http.virtual.api.SourceImpl;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPProcessorFactory;
 import be.nabu.libs.http.server.nio.NIOHTTPServer;
+import be.nabu.libs.nio.PipelineUtils;
 import be.nabu.libs.nio.api.MessagePipeline;
 import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.nio.api.SourceContext;
@@ -88,5 +92,11 @@ public class Services {
 				// continue
 			}
 		}
+	}
+	
+	@WebResult(name = "source")
+	public Source getSource() {
+		Pipeline pipeline = PipelineUtils.getPipeline();
+		return pipeline == null ? null : new SourceImpl(pipeline.getSourceContext());
 	}
 }
