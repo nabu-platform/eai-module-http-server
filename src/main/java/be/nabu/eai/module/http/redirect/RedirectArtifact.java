@@ -3,6 +3,7 @@ package be.nabu.eai.module.http.redirect;
 import java.io.IOException;
 import java.net.URI;
 
+import be.nabu.eai.module.http.virtual.VirtualHostArtifact;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StartableArtifact;
@@ -47,10 +48,11 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 							if (getConfig().getToPath() != null) {
 								uri = uri.resolve(getConfig().getToPath());
 							}
-							if (getConfig().getToHost() != null) {
-								boolean toSecure = getConfig().getToHost().getConfig().getKeyAlias() != null && getConfig().getToHost().getConfig().getServer() != null
-										&& getConfig().getToHost().getConfig().getServer().getConfig().getKeystore() != null;
-								String authority = getConfig().getToHost().getConfig().getHost();
+							VirtualHostArtifact toHost = getConfig().getToHost() == null ? getConfig().getFromHost() : getConfig().getToHost();
+							if (toHost.getConfig().getHost() != null && !toHost.getConfig().getHost().equals(uri.getHost())) {
+								boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
+										&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
+								String authority = toHost.getConfig().getHost();
 								if (authority == null) {
 									throw new HTTPException(500, "No server host configured for redirect in: " + getConfig().getToHost().getId());
 								}
