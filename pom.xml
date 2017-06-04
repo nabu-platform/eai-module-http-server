@@ -44,6 +44,10 @@
 		</dependency>
 		<dependency>
 			<groupId>be.nabu.libs.http</groupId>
+			<artifactId>http-acme</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>be.nabu.libs.http</groupId>
 			<artifactId>http-server</artifactId>
 			<scope>provided</scope>
 		</dependency>

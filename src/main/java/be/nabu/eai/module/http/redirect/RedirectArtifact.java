@@ -49,9 +49,9 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 								uri = uri.resolve(getConfig().getToPath());
 							}
 							VirtualHostArtifact toHost = getConfig().getToHost() == null ? getConfig().getFromHost() : getConfig().getToHost();
-							if (toHost.getConfig().getHost() != null && !toHost.getConfig().getHost().equals(uri.getHost())) {
-								boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
-										&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
+							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
+								&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
+							if (toHost.getConfig().getHost() != null && (!toHost.getConfig().getHost().equals(uri.getHost()) || fromSecure != toSecure)) {
 								String authority = toHost.getConfig().getHost();
 								if (authority == null) {
 									throw new HTTPException(500, "No server host configured for redirect in: " + getConfig().getToHost().getId());
@@ -78,7 +78,6 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 					return null;
 				}
 			});
-			subscription.promote();
 		}
 	}
 

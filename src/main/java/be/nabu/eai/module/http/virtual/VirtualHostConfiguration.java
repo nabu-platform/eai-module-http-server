@@ -15,13 +15,14 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.libs.services.api.DefinedService;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
 	private List<String> aliases;
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
+	private boolean useAcme;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
@@ -95,4 +96,15 @@ public class VirtualHostConfiguration {
 	public void setRequestRewriter(DefinedService requestRewriter) {
 		this.requestRewriter = requestRewriter;
 	}
+	
+	@Advanced
+	@Comment(title = "If toggle the indicated key will not be used as certificate but instead the acme protocol will be used to automatically request a certificate")
+	@EnvironmentSpecific
+	public boolean isUseAcme() {
+		return useAcme;
+	}
+	public void setUseAcme(boolean useAcme) {
+		this.useAcme = useAcme;
+	}
+	
 }
