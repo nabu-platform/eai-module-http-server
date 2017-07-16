@@ -161,15 +161,15 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 	}
 	
 	private ServiceException getServiceException(Throwable throwable) {
+		ServiceException serviceException = null;
+		// the deepest service exception (if there are multiple) is what we are interested in
 		while(throwable != null) {
-			if (throwable instanceof ServiceException) {
-				return (ServiceException) throwable;
+			if (throwable instanceof ServiceException && ((ServiceException) throwable).getCode() != null) {
+				serviceException = (ServiceException) throwable;
 			}
-			else {
-				throwable = throwable.getCause();
-			}
+			throwable = throwable.getCause();
 		}
-		return null;
+		return serviceException;
 	}
 	
 	private HTTPException getHTTPException(Throwable throwable) {
