@@ -192,7 +192,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 					originalCertificate.getPublicKey(),
 					getConfig().getServer().getConfig().getKeystore().getKeyStore().getPrivateKey(originalKeyAlias)
 				);
-				AcmeClient acmeClient = new AcmeClient(new NIOHTTPClientImpl(null, 2, 5, 5, new be.nabu.libs.events.impl.EventDispatcherImpl(), new MemoryMessageDataProvider(), 
+				AcmeClient acmeClient = new AcmeClient(new NIOHTTPClientImpl(null, 5, 5, 5, new be.nabu.libs.events.impl.EventDispatcherImpl(), new MemoryMessageDataProvider(), 
 					new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_NONE), Executors.defaultThreadFactory()),
 					user, 
 					new URI(uri));

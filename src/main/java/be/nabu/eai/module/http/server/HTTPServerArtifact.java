@@ -121,7 +121,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							ioPoolSize,
 							processPoolSize,
 							new EventDispatcherImpl(),
-							new RepositoryThreadFactory(getRepository())
+							new RepositoryThreadFactory(getRepository()),
+							getConfig().isProxied()
 						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
 						server.setExceptionFormatter(new RepositoryExceptionFormatter(this));

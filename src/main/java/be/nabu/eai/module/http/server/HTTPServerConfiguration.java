@@ -12,7 +12,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -21,7 +21,7 @@ public class HTTPServerConfiguration {
 	private Long maxSizePerRequest;
 	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
-	private boolean enabled = true;
+	private boolean enabled = true, proxied;
 	private Integer maxInitialLineLength;
 	private Integer maxHeaderSize;
 	private Integer maxChunkSize;
@@ -188,6 +188,15 @@ public class HTTPServerConfiguration {
 	}
 	public void setMaxChunkSize(Integer maxChunkSize) {
 		this.maxChunkSize = maxChunkSize;
+	}
+	
+	@EnvironmentSpecific
+	@Advanced
+	public boolean isProxied() {
+		return proxied;
+	}
+	public void setProxied(boolean proxied) {
+		this.proxied = proxied;
 	}
 	
 }
