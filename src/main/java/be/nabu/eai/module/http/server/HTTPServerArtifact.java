@@ -22,6 +22,7 @@ import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
+import be.nabu.libs.artifacts.api.TunnelableArtifact;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPServer;
@@ -37,7 +38,7 @@ import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
 
-public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements StartableArtifact, StoppableArtifact {
+public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements StartableArtifact, StoppableArtifact, TunnelableArtifact {
 
 	public static final String MODULE = "nabu.protocols.http.server";
 	
@@ -207,5 +208,21 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 
 	public RoutingMessageDataProvider getMessageDataProvider() {
 		return messageDataProvider;
+	}
+
+	@Override
+	public String getTunnelHost() {
+		// it is always running on the current host
+		return "localhost";
+	}
+
+	@Override
+	public Integer getTunnelPort() {
+		if (getConfig().getPort() == null) {
+			return getConfig().getKeystore() != null ? 443 : 80;
+		}
+		else {
+			return getConfig().getPort();
+		}
 	}
 }

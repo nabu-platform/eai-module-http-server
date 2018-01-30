@@ -12,7 +12,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -25,6 +25,8 @@ public class HTTPServerConfiguration {
 	private Integer maxInitialLineLength;
 	private Integer maxHeaderSize;
 	private Integer maxChunkSize;
+	private Integer proxyPort;
+	private boolean proxySecure;
 	
 	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
@@ -198,5 +200,24 @@ public class HTTPServerConfiguration {
 	public void setProxied(boolean proxied) {
 		this.proxied = proxied;
 	}
+	
+	@EnvironmentSpecific
+	@Advanced
+	public Integer getProxyPort() {
+		return proxyPort;
+	}
+	public void setProxyPort(Integer proxyPort) {
+		this.proxyPort = proxyPort;
+	}
+	
+	@EnvironmentSpecific
+	@Advanced
+	public boolean isProxySecure() {
+		return proxySecure;
+	}
+	public void setProxySecure(boolean proxySecure) {
+		this.proxySecure = proxySecure;
+	}
+	
 	
 }
