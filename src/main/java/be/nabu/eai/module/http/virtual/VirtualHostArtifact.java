@@ -183,7 +183,8 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				
 				logger.info("Starting acme procedure for: " + getId());
 
-				String uri = Boolean.parseBoolean(System.getProperty("acme.staging", "false")) ? AcmeClient.LETS_ENCRYPT_STAGING : AcmeClient.LETS_ENCRYPT;
+				boolean staging = Boolean.parseBoolean(System.getProperty("acme.staging", "false"));
+				String uri = staging ? AcmeClient.LETS_ENCRYPT_STAGING : AcmeClient.LETS_ENCRYPT;
 				logger.info("Acme directory endpoint: " + uri);
 				
 				// we use the original pair as the user pair
@@ -199,12 +200,16 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				
 				final Challenge challenge = acmeClient.challenge(getConfig().getHost(), ChallengeType.HTTP);
 				if (challenge != null) {
+					logger.debug("Received challenge: " + challenge.getToken());
+					logger.debug("Subscribing to: " + unsecure.getConfig().getHost() + " @ "+ unsecure.getConfig().getServer().getId() + " / " + unsecure.isStarted());
+					final String path = AcmeUtils.getHttpUri(challenge).getPath();
 					EventSubscription<HTTPRequest, HTTPResponse> subscription = unsecure.getDispatcher().subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
 						@Override
 						public HTTPResponse handle(HTTPRequest request) {
 							try {
 								URI uri = HTTPUtils.getURI(request, false);
-								if (uri.getPath().equals(AcmeUtils.getHttpUri(challenge).getPath())) {
+								logger.debug("Checking for challenge match: " + uri.getPath() + " == " + path);
+								if (uri.getPath().equals(path)) {
 									byte [] content = challenge.getAuthorization().getBytes(Charset.forName("UTF-8"));
 									return new DefaultHTTPResponse(200, HTTPCodes.getMessage(200), new PlainMimeContentPart(null, 
 										IOUtils.wrap(content, true), 
@@ -227,7 +232,16 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 						subscription.unsubscribe();
 					}
 				}
-				if (challenge == null || challenge.accepted()) {
+				if (staging) {
+					boolean success = challenge == null || challenge.accepted();
+					if (success) {
+						logger.info("ACME Staging challenge for '" + unsecure.getConfig().getHost() + "' successful");
+					}
+					else {
+						logger.warn("ACME Staging challenge for '" + unsecure.getConfig().getHost() + "' failed");
+					}
+				}
+				else if (challenge == null || challenge.accepted()) {
 					KeyPair pair = SecurityUtils.generateKeyPair(KeyPairType.RSA, 4096);
 					// we take one day in the past to bypass any possible timezone issues
 					X509Certificate [] chain = acmeClient.certify(getConfig().getHost(), pair, SignatureType.SHA256WITHRSA, originalCertificate.getSubjectX500Principal(), 

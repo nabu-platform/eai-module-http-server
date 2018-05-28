@@ -71,7 +71,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						server.start();
 					}
 					catch (IOException e) {
-						throw new RuntimeException(e);
+						logger.error("Could not start http server: " + getId(), e);
 					}
 				}
 			});
