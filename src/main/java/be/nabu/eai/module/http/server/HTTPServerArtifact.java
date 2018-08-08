@@ -57,6 +57,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	@Override
 	public void stop() throws IOException {
 		getServer().stop();
+		// reset the server, we may want to restart it with different values? (e.g. the keystore has been updated)
+		server = null;
 	}
 
 	@Override
@@ -79,6 +81,17 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		}
 	}
 	
+	public void updateSecurityContext() {
+		if (getConfig().getKeystore() != null && server != null) {
+			try {
+				server.setSSLContext(generateSecurityContext());
+			}
+			catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
 	public HTTPServer getServer() {
 		if (server == null) {
 			synchronized(this) {
@@ -87,15 +100,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						SSLContext context = null;
 						Integer port = getConfiguration().getPort();
 						if (getConfiguration().getKeystore() != null) {
-							KeyStoreHandler keyStoreHandler = new KeyStoreHandler(getConfiguration().getKeystore().getKeyStore().getKeyStore());
-							KeyManager[] keyManagers = keyStoreHandler.getKeyManagers();
-							for (int i = 0; i < keyManagers.length; i++) {
-								if (keyManagers[i] instanceof X509KeyManager) {
-									keyManagers[i] = new ArtifactAwareKeyManager((X509KeyManager) keyManagers[i], getRepository(), this);
-								}
-							}
-							context = SSLContext.getInstance(SSLContextType.TLS.toString());
-							context.init(keyManagers, keyStoreHandler.getTrustManagers(), new SecureRandom());
+							context = generateSecurityContext();
 							if (port == null) {
 								port = 443;
 							}
@@ -199,6 +204,19 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 			}
 		}
 		return server;
+	}
+
+	private SSLContext generateSecurityContext() throws IOException, KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException {
+		KeyStoreHandler keyStoreHandler = new KeyStoreHandler(getConfiguration().getKeystore().getKeyStore().getKeyStore());
+		KeyManager[] keyManagers = keyStoreHandler.getKeyManagers();
+		for (int i = 0; i < keyManagers.length; i++) {
+			if (keyManagers[i] instanceof X509KeyManager) {
+				keyManagers[i] = new ArtifactAwareKeyManager((X509KeyManager) keyManagers[i], getRepository(), this);
+			}
+		}
+		SSLContext context = SSLContext.getInstance(SSLContextType.TLS.toString());
+		context.init(keyManagers, keyStoreHandler.getTrustManagers(), new SecureRandom());
+		return context;
 	}
 
 	@Override
