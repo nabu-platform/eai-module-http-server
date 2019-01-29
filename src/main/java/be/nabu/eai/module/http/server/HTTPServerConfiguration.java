@@ -1,5 +1,7 @@
 package be.nabu.eai.module.http.server;
 
+import java.net.URI;
+
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -12,7 +14,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -27,6 +29,7 @@ public class HTTPServerConfiguration {
 	private Integer maxChunkSize;
 	private Integer proxyPort;
 	private boolean proxySecure;
+	private URI errorTypeUri, errorInstanceUri;
 	
 	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
@@ -219,5 +222,22 @@ public class HTTPServerConfiguration {
 		this.proxySecure = proxySecure;
 	}
 	
+	@Advanced
+	@Comment(title = "The uri that will be used to explain error types in structural error messages, you can use these replacements if necessary: {code}, {status}")
+	public URI getErrorTypeUri() {
+		return errorTypeUri;
+	}
+	public void setErrorTypeUri(URI errorTypeUri) {
+		this.errorTypeUri = errorTypeUri;
+	}
+	
+	@Advanced
+	@Comment(title = "The uri that will be used to explain error instances in structural error messages, you can use these replacements if necessary: {code}, {status}, {identifier}")
+	public URI getErrorInstanceUri() {
+		return errorInstanceUri;
+	}
+	public void setErrorInstanceUri(URI errorInstanceUri) {
+		this.errorInstanceUri = errorInstanceUri;
+	}
 	
 }
