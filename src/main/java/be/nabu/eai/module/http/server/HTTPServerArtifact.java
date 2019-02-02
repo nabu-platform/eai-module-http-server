@@ -6,6 +6,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.util.Map;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -25,6 +26,7 @@ import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
+import be.nabu.libs.http.api.HeaderMappingProvider;
 import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.libs.http.server.nio.HTTPPipelineFactoryImpl;
@@ -128,7 +130,13 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							processPoolSize,
 							new EventDispatcherImpl(),
 							new RepositoryThreadFactory(getRepository()),
-							getConfig().isProxied()
+							getConfig().isProxied(),
+							new HeaderMappingProvider() {
+								@Override
+								public Map<String, String> getMappings() {
+									return getConfig().isProxied() ? getConfig().getHeaderMapping() : null;
+								}
+							}
 						);
 						server.setMetrics(getRepository().getMetricInstance(getId()));
 						server.setExceptionFormatter(new RepositoryExceptionFormatter(this));

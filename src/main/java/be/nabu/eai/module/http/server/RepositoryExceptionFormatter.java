@@ -109,7 +109,8 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 	}
 	
 	private String stringify(HTTPRequest request) {
-		HTTPFormatter formatter = new HTTPFormatter();
+		// ignore internal headers, they might contain identifiable information
+		HTTPFormatter formatter = new HTTPFormatter(true);
 		// do not allow binary, we are stringifying the request
 		formatter.getFormatter().setAllowBinary(false);
 		// do not allow cookies to be stored, for GDPR reasons (they might contain identifiable information)

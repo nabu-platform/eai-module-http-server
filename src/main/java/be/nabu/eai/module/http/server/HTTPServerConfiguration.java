@@ -1,6 +1,8 @@
 package be.nabu.eai.module.http.server;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -11,10 +13,12 @@ import be.nabu.eai.api.Comment;
 import be.nabu.eai.api.EnvironmentSpecific;
 import be.nabu.eai.module.keystore.KeyStoreArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
+import be.nabu.eai.repository.util.KeyValueMapAdapter;
+import be.nabu.libs.http.core.ServerHeader;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
 public class HTTPServerConfiguration {
 	private Integer port;
 	private KeyStoreArtifact keystore;
@@ -30,6 +34,8 @@ public class HTTPServerConfiguration {
 	private Integer proxyPort;
 	private boolean proxySecure;
 	private URI errorTypeUri, errorInstanceUri;
+	
+	private Map<String, String> headerMapping;
 	
 	@Comment(title = "The port that the server will be listening on")
 	@EnvironmentSpecific
@@ -220,6 +226,28 @@ public class HTTPServerConfiguration {
 	}
 	public void setProxySecure(boolean proxySecure) {
 		this.proxySecure = proxySecure;
+	}
+	
+	@EnvironmentSpecific
+	@Advanced
+	@XmlJavaTypeAdapter(value = KeyValueMapAdapter.class)
+	public Map<String, String> getHeaderMapping() {
+		if (headerMapping == null) {
+			headerMapping = new HashMap<String, String>();
+		}
+		if (isProxied() && headerMapping.isEmpty()) {
+			for (ServerHeader header : ServerHeader.values()) {
+				headerMapping.put(header.getName(), null);
+			}
+		}
+		// if we are not being proxied, we don't care about the header mapping
+		else if (!isProxied()) {
+			headerMapping.clear();
+		}
+		return headerMapping;
+	}
+	public void setHeaderMapping(Map<String, String> headerMapping) {
+		this.headerMapping = headerMapping;
 	}
 	
 	@Advanced

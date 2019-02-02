@@ -2,6 +2,7 @@ package be.nabu.eai.module.http.server;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import be.nabu.eai.developer.MainController;
 import be.nabu.eai.developer.managers.base.BaseJAXBGUIManager;
@@ -29,4 +30,18 @@ public class HTTPServerGUIManager extends BaseJAXBGUIManager<HTTPServerConfigura
 	protected HTTPServerArtifact newInstance(MainController controller, RepositoryEntry entry, Value<?>... values) throws IOException {
 		return new HTTPServerArtifact(entry.getId(), entry.getContainer(), entry.getRepository());
 	}
+
+	@Override
+	public <V> void setValue(HTTPServerArtifact instance, Property<V> property, V value) {
+		// we don't want to update the properties as the map has to stay the same (reference-wise)
+		if (!"headerMapping".equals(property.getName())) {
+			super.setValue(instance, property, value);
+		}
+		// we can however merge it
+		else if (value instanceof Map) {
+			getConfiguration(instance).getHeaderMapping().putAll(((Map<? extends String, ? extends String>) value));
+		}
+	}
+	
+	
 }
