@@ -15,7 +15,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.libs.services.api.DefinedService;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
@@ -23,6 +23,8 @@ public class VirtualHostConfiguration {
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	private boolean useAcme;
+	private boolean enableHsts, hstsPreload, hstsSubDomains;
+	private Long hstsMaxAge;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
@@ -105,6 +107,42 @@ public class VirtualHostConfiguration {
 	}
 	public void setUseAcme(boolean useAcme) {
 		this.useAcme = useAcme;
+	}
+	
+	@Advanced
+	@Comment(title = "This automatically sets a hsts header of a year by default, you can set other timings in the max age field.")
+	public boolean isEnableHsts() {
+		return enableHsts;
+	}
+	public void setEnableHsts(boolean enableHsts) {
+		this.enableHsts = enableHsts;
+	}
+	
+	@Comment(title = "Whether or not to add this site to the preload list (check: https://hstspreload.org/). If you set this boolean it might impact the other hsts settings for minimum compliance.")
+	@Advanced
+	public boolean isHstsPreload() {
+		return hstsPreload;
+	}
+	public void setHstsPreload(boolean hstsPreload) {
+		this.hstsPreload = hstsPreload;
+	}
+	
+	@Comment(title = "Set a max age that is not a year")
+	@Advanced
+	public Long getHstsMaxAge() {
+		return hstsMaxAge;
+	}
+	public void setHstsMaxAge(Long hstsMaxAge) {
+		this.hstsMaxAge = hstsMaxAge;
+	}
+
+	@Advanced
+	@Comment(title = "Whether or not to set the subdomains directive on the hsts header")
+	public boolean isHstsSubDomains() {
+		return hstsSubDomains;
+	}
+	public void setHstsSubDomains(boolean hstsSubDomains) {
+		this.hstsSubDomains = hstsSubDomains;
 	}
 	
 }

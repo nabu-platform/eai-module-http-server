@@ -45,7 +45,10 @@ import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.services.pojo.POJOUtils;
 import be.nabu.utils.io.IOUtils;
+import be.nabu.utils.mime.api.Header;
+import be.nabu.utils.mime.api.ModifiablePart;
 import be.nabu.utils.mime.impl.MimeHeader;
+import be.nabu.utils.mime.impl.MimeUtils;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
 import be.nabu.utils.security.KeyPairType;
 import be.nabu.utils.security.SecurityUtils;
@@ -99,6 +102,36 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 									return responseSubscriber.handle(new SourceImpl(sourceContext), event);
 								}
 							});
+						}
+						if (getConfig().isEnableHsts()) {
+							EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPResponse event) {
+									ModifiablePart content = event.getContent();
+									// only inject the header if the server is secure
+									if (content != null && getConfig().getServer() != null && getConfig().getServer().isSecure()) {
+										Header header = MimeUtils.getHeader("Strict-Transport-Security", content.getHeaders());
+										if (header == null) {
+											long age = getConfig().getHstsMaxAge() == null ? 31536000 : getConfig().getHstsMaxAge();
+											if (age < 0 || (age < 31536000 && getConfig().isHstsPreload())) {
+												age = 31536000;
+											}
+											MimeHeader mimeHeader = new MimeHeader("Strict-Transport-Security", "max-age=" + age);
+											if (getConfig().isHstsSubDomains() || getConfig().isHstsPreload()) {
+												mimeHeader.addComment("includeSubDomains");
+											}
+											if (getConfig().isHstsPreload()) {
+												mimeHeader.addComment("preload");
+											}
+											content.setHeader(mimeHeader);
+										}
+									}
+									return null;
+								}
+							});
+							// put it at the end for now
+							// note that this is registered in the beginning however, other post processors will likely execute after this one, so the demote() has little added value for now
+							subscription.demote();
 						}
 						this.dispatcher = dispatcher;
 					}

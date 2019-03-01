@@ -24,6 +24,7 @@ import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
+import be.nabu.libs.artifacts.api.TwoPhaseStartableArtifact;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.HeaderMappingProvider;
@@ -40,7 +41,7 @@ import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
 
-public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements StartableArtifact, StoppableArtifact, TunnelableArtifact {
+public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements TwoPhaseStartableArtifact, StoppableArtifact, TunnelableArtifact {
 
 	public static final String MODULE = "nabu.protocols.http.server";
 	
@@ -61,6 +62,13 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		getServer().stop();
 		// reset the server, we may want to restart it with different values? (e.g. the keystore has been updated)
 		server = null;
+		thread = null;
+	}
+	
+	// whether communication with this http server is secured
+	// note that the ssl might be terminated by a proxy
+	public boolean isSecure() {
+		return this.getConfig().isProxied() ? this.getConfig().isProxySecure() : this.getConfig().getKeystore() != null;
 	}
 
 	@Override
@@ -79,7 +87,6 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 					}
 				}
 			});
-			thread.start();
 		}
 	}
 	
@@ -250,5 +257,17 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		else {
 			return getConfig().getPort();
 		}
+	}
+
+	@Override
+	public void finish() {
+		if (thread != null) {
+			thread.start();
+		}
+	}
+
+	@Override
+	public boolean isFinished() {
+		return isStarted() && thread.isAlive();
 	}
 }
