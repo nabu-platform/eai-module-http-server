@@ -175,6 +175,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		exceptionSummary.setIdentifier(notification.getIdentifier());
 		
 		boolean isHTTPCode = serviceException != null && serviceException.getCode().matches("^4[0-9]{2}$");
+		int httpCode = exception.getCode() == 500 && isHTTPCode ? Integer.parseInt(serviceException.getCode()) : exception.getCode();
 		if (serviceException != null) {
 			exceptionSummary.setCode(serviceException.getCode());
 			exceptionSummary.setMessage(serviceException.getMessage());
@@ -182,7 +183,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			exceptionSummary.setServiceStack(serviceException.getServiceStack());
 		}
 		else {
-			exceptionSummary.setCode("HTTP-" + exception.getCode());
+			exceptionSummary.setCode("HTTP-" + httpCode);
 			exceptionSummary.setMessage(HTTPCodes.getMessage(exception.getCode()) + ": " + exception.getMessage());
 		}
 		
@@ -261,7 +262,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		
 		StructuredResponse response = new StructuredResponse();
-		response.setStatus(exception.getCode());
+		response.setStatus(httpCode);
 		// an identifier that we send to the client and that we also send in the notification
 		response.setIdentifier(notification.getIdentifier());
 		response.setType(exceptionSummary.getType());
@@ -282,12 +283,12 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			}
 		}
 		else {
-			response.setCode("HTTP-" + exception.getCode());
+			response.setCode("HTTP-" + httpCode);
 			if (useProblemJson) {
-				response.setTitle(HTTPCodes.getMessage(exception.getCode()));
+				response.setTitle(HTTPCodes.getMessage(httpCode));
 			}
 			else {
-				response.setMessage(HTTPCodes.getMessage(exception.getCode()));
+				response.setMessage(HTTPCodes.getMessage(httpCode));
 			}
 			if (EAIResourceRepository.isDevelopment()) {
 				response.setDescription(stacktrace(exception));
@@ -339,7 +340,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			throw new RuntimeException(e);
 		}
 		byte [] bytes = output.toByteArray();
-		return new ExceptionHTTPResponse(request, exception.getCode() == 500 && isHTTPCode ? Integer.parseInt(serviceException.getCode()) : exception.getCode(), HTTPCodes.getMessage(exception.getCode()), new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
+		return new ExceptionHTTPResponse(request, httpCode, HTTPCodes.getMessage(exception.getCode()), new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
 			new MimeHeader("Connection", "close"),
 			new MimeHeader("Content-Length", "" + bytes.length),
 			new MimeHeader("Content-Type", contentType + "; charset=" + charset.displayName())
