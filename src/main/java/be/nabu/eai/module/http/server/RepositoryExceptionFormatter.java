@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,6 +15,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -33,7 +36,11 @@ import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.core.DefaultHTTPRequest;
 import be.nabu.libs.http.core.DefaultHTTPResponse;
 import be.nabu.libs.http.core.HTTPFormatter;
+import be.nabu.libs.http.core.HTTPUtils;
+import be.nabu.libs.http.core.ServerHeader;
+import be.nabu.libs.nio.PipelineUtils;
 import be.nabu.libs.nio.api.ExceptionFormatter;
+import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.property.api.Value;
 import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.services.api.ServiceException;
@@ -47,10 +54,13 @@ import be.nabu.libs.types.binding.xml.XMLBinding;
 import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanResolver;
 import be.nabu.libs.validator.api.ValidationMessage.Severity;
+import be.nabu.utils.cep.impl.CEPUtils;
+import be.nabu.utils.cep.impl.HTTPComplexEventImpl;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.ByteBuffer;
 import be.nabu.utils.mime.api.Header;
 import be.nabu.utils.mime.api.ModifiablePart;
+import be.nabu.utils.mime.impl.FormatException;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.MimeUtils;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
@@ -148,6 +158,38 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 	}
 	
+	// get the whitelisted code for this error code
+	private String getWhitelistedCode(String code) {
+		// verbatim check
+		if (whitelistedCodes.contains(code)) {
+			return code;
+		}
+		// regex check
+		for (String whitelisted : whitelistedCodes) {
+			// do a regex check
+			Pattern pattern = Pattern.compile(whitelisted.replace("*", ".*"));
+			Matcher matcher = pattern.matcher(code);
+			if (matcher.matches()) {
+				if (matcher.groupCount() >= 1) {
+					return matcher.group(1);
+				}
+				return whitelisted;
+			}
+		}
+		return null;
+	}
+	
+	private String getMappedHeaderValue(HTTPRequest request, String name) {
+		String headerName = server.getConfig().getHeaderMapping().get(name);
+		if (headerName != null) {
+			Header header = MimeUtils.getHeader(headerName, request.getContent().getHeaders());
+			if (header != null) {
+				return MimeUtils.getFullHeaderValue(header);
+			}
+		}
+		return null;
+	}
+	
 	@Override
 	public HTTPResponse format(HTTPRequest request, Exception originalException) {
 		Token token = getToken(originalException);
@@ -165,6 +207,53 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		HTTPException exception = originalException instanceof HTTPException ? (HTTPException) originalException : new HTTPException(500, originalException);
 		ServiceException serviceException = getServiceException(exception);
 		
+		HTTPComplexEventImpl event = null;
+		if (server.getRepository().getComplexEventDispatcher() != null) {
+			event = new HTTPComplexEventImpl();
+			if (device != null) {
+				event.setDeviceId(device.getDeviceId());
+			}
+			if (token != null) {
+				event.setAlias(token.getName());
+				event.setRealm(token.getRealm());
+			}
+			Pipeline pipeline = PipelineUtils.getPipeline();
+			CEPUtils.enrich(event, getClass(), "http-exception", pipeline.getSourceContext().getSocketAddress(), originalException.getMessage(), originalException);
+			event.setMethod(request.getMethod());
+			try {
+				event.setRequestUri(HTTPUtils.getURI(request, server.isSecure()));
+			}
+			catch (FormatException e) {
+				// could not set the request uri... :(
+			}
+			event.setApplicationProtocol(server.isSecure() ? "HTTPS" : "HTTP");
+			event.setArtifactId(server.getId());
+			event.setDestinationPort(server.getConfig().getPort());
+			Header header = MimeUtils.getHeader("User-Agent", request.getContent().getHeaders());
+			if (header != null) {
+				event.setUserAgent(MimeUtils.getFullHeaderValue(header));
+			}
+			header = MimeUtils.getHeader(ServerHeader.REQUEST_RECEIVED.getName(), request.getContent().getHeaders());
+			if (header != null) {
+				try {
+					event.setStarted(HTTPUtils.parseDate(header.getValue()));
+					event.setStopped(new Date());
+				}
+				catch (ParseException e) {
+					// couldn't parse date...
+				}
+			}
+			// inject the header values, the source values may point to a proxy
+			if (server.getConfig().isProxied() && server.getConfig().getHeaderMapping() != null) {
+				// if it is null, still better than the proxy server value?
+				event.setSourceIp(getMappedHeaderValue(request, ServerHeader.REMOTE_ADDRESS.getName()));
+				event.setSourceHost(getMappedHeaderValue(request, ServerHeader.REMOTE_HOST.getName()));
+				String sourcePort = getMappedHeaderValue(request, ServerHeader.REMOTE_PORT.getName());
+				event.setSourcePort(sourcePort == null ? null : Integer.parseInt(sourcePort));
+			}
+			event.setSizeIn(MimeUtils.getContentLength(request.getContent().getHeaders()));
+		}
+		
 		ExceptionSummary exceptionSummary = new ExceptionSummary();
 		// get the full stack trace
 		exceptionSummary.setStacktrace(stacktrace(exception));
@@ -174,6 +263,16 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		exceptionSummary.setStatus(exception.getCode());
 		exceptionSummary.setIdentifier(notification.getIdentifier());
 		
+		if (event != null) {
+			event.setReason(exception.getDescription() == null ? (serviceException == null ? null : serviceException.getDescription()) : exception.getDescription());
+			if (exception.getContext() != null) {
+				event.setContext(exception.getContext().toString());
+			}
+			else if (serviceException != null) {
+				event.setContext(serviceException.getServiceStack().toString());
+			}
+		}
+		
 		boolean isHTTPCode = serviceException != null && serviceException.getCode().matches("^4[0-9]{2}$");
 		int httpCode = exception.getCode() == 500 && isHTTPCode ? Integer.parseInt(serviceException.getCode()) : exception.getCode();
 		if (serviceException != null) {
@@ -181,10 +280,16 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			exceptionSummary.setMessage(serviceException.getMessage());
 			exceptionSummary.setDescription(serviceException.getDescription());
 			exceptionSummary.setServiceStack(serviceException.getServiceStack());
+			if (event != null) {
+				event.setCode(serviceException.getCode());
+			}
 		}
 		else {
 			exceptionSummary.setCode("HTTP-" + httpCode);
 			exceptionSummary.setMessage(HTTPCodes.getMessage(exception.getCode()) + ": " + exception.getMessage());
+			if (event != null) {
+				event.setCode("HTTP-" + httpCode);
+			}
 		}
 		
 		if (server.getConfig().getErrorInstanceUri() != null) {
@@ -243,7 +348,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			// fire a notification
 			notification.setContext(context);
 			notification.setType("http.server");
-			notification.setCode(exception.getCode());
+			notification.setCode("HTTP-" + exception.getCode());
 			notification.setProperties(content);
 			notification.setMessage("Request failed");
 			notification.setDescription(Notification.format(originalException));
@@ -268,16 +373,25 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		response.setType(exceptionSummary.getType());
 		response.setInstance(exceptionSummary.getInstance());
 		
+		if (event != null) {
+			event.setExternalId(notification.getIdentifier());
+		}
+		
+		String whitelistedCode = serviceException != null ? getWhitelistedCode(serviceException.getCode()) : null;
 		// we have a service exception that can be reported
-		if (serviceException != null && whitelistedCodes.contains(serviceException.getCode())) {
-			response.setCode(serviceException.getCode());
-			if (useProblemJson) {
-				response.setTitle(serviceException.getPlainMessage());
+		if (whitelistedCode != null) {
+			response.setCode(whitelistedCode);
+			// only use the actual message if the code is an exact match
+			// if we are combining multiple codes, we don't want to expose the actual code itself
+			if (whitelistedCode.equals(serviceException.getCode())) {
+				if (useProblemJson) {
+					response.setTitle(serviceException.getPlainMessage());
+				}
+				else {
+					response.setMessage(serviceException.getPlainMessage());
+				}
+				response.setDetail(serviceException.getDescription());
 			}
-			else {
-				response.setMessage(serviceException.getPlainMessage());
-			}
-			response.setDetail(serviceException.getDescription());
 			if (EAIResourceRepository.isDevelopment()) {
 				response.setDescription(serviceException.getServiceStack() + "\n\n" + stacktrace(exception));
 			}
@@ -340,6 +454,10 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			throw new RuntimeException(e);
 		}
 		byte [] bytes = output.toByteArray();
+		if (event != null) {
+			event.setSizeOut((long) bytes.length);
+			server.getRepository().getComplexEventDispatcher().fire(event, server);
+		}
 		return new ExceptionHTTPResponse(request, httpCode, HTTPCodes.getMessage(exception.getCode()), new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
 			new MimeHeader("Connection", "close"),
 			new MimeHeader("Content-Length", "" + bytes.length),
@@ -408,7 +526,10 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		private URI instance;
 		// the http status
 		private int status;
-		private String title, detail;
+		// A short, human-readable summary of the problem type.  It SHOULD NOT change from occurrence to occurrence of the problem, except for purposes of localization
+		private String title;
+		// A human-readable explanation specific to this occurrence of the problem.
+		private String detail;
 		
 		// not supported by spec: https://tools.ietf.org/html/rfc7807#page-9
 		private String code, message, description, identifier;

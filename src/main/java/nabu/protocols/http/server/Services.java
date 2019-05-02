@@ -2,6 +2,7 @@ package nabu.protocols.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import be.nabu.eai.module.http.virtual.api.SourceImpl;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.server.HTTPProcessorFactory;
+import be.nabu.libs.http.core.HTTPUtils;
 import be.nabu.libs.http.server.nio.NIOHTTPServer;
 import be.nabu.libs.nio.PipelineUtils;
 import be.nabu.libs.nio.api.MessagePipeline;
@@ -23,6 +25,7 @@ import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.nio.impl.MessagePipelineImpl;
 import be.nabu.libs.services.api.ExecutionContext;
+import be.nabu.utils.mime.impl.FormatException;
 import nabu.protocols.http.server.types.HttpConnectionInformation;
 import nabu.protocols.http.server.types.HttpRequestSummary;
 import nabu.protocols.http.server.types.HttpResponseSummary;
@@ -98,5 +101,10 @@ public class Services {
 	public Source getSource() {
 		Pipeline pipeline = PipelineUtils.getPipeline();
 		return pipeline == null ? null : new SourceImpl(pipeline.getSourceContext());
+	}
+	
+	@WebResult(name = "uri")
+	public URI getRequestUri(@WebParam(name = "request") HTTPRequest request, @WebParam(name = "secure") Boolean secure) throws FormatException {
+		return request == null ? null : HTTPUtils.getURI(request, secure != null && secure);
 	}
 }
