@@ -24,6 +24,7 @@ import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
 import be.nabu.libs.artifacts.api.TwoPhaseStartableArtifact;
+import be.nabu.libs.events.api.EventTarget;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.HeaderMappingProvider;
@@ -37,6 +38,7 @@ import be.nabu.libs.nio.api.ConnectionAcceptor;
 import be.nabu.libs.nio.api.NIOServer;
 import be.nabu.libs.nio.impl.MaxTotalConnectionsAcceptor;
 import be.nabu.libs.resources.api.ResourceContainer;
+import be.nabu.utils.cep.impl.ComplexEventImpl;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
 
@@ -141,6 +143,18 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 								@Override
 								public Map<String, String> getMappings() {
 									return getConfig().isProxied() ? getConfig().getHeaderMapping() : null;
+								}
+							},
+							new EventTarget() {
+								@Override
+								public <E> void fire(E event, Object source) {
+									if (getRepository().getComplexEventDispatcher() != null) {
+										// set the id of this server
+										if (event instanceof ComplexEventImpl) {
+											((ComplexEventImpl) event).setArtifactId(getId());
+										}
+										getRepository().getComplexEventDispatcher().fire(event, source);
+									}
 								}
 							}
 						);
