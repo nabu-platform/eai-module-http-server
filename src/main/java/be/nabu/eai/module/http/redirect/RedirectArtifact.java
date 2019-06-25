@@ -52,7 +52,14 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
 								&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
 							if (toHost.getConfig().getHost() != null && (!toHost.getConfig().getHost().equals(uri.getHost()) || fromSecure != toSecure)) {
-								String authority = toHost.getConfig().getHost();
+								String authority;
+								// allow redirects to use aliases
+								if (toHost.getConfig().getAliases() != null && toHost.getConfig().getAliases().contains(uri.getHost())) {
+									authority = uri.getHost();
+								}
+								else {
+									authority = toHost.getConfig().getHost();
+								}
 								if (authority == null) {
 									throw new HTTPException(500, "No server host configured for redirect in: " + getConfig().getToHost().getId());
 								}

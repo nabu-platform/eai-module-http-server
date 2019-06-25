@@ -218,7 +218,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 				event.setRealm(token.getRealm());
 			}
 			Pipeline pipeline = PipelineUtils.getPipeline();
-			CEPUtils.enrich(event, getClass(), "http-exception", pipeline.getSourceContext().getSocketAddress(), originalException.getMessage(), originalException);
+			CEPUtils.enrich(event, getClass(), "http-exception", pipeline.getSourceContext() == null ? null : pipeline.getSourceContext().getSocketAddress(), originalException.getMessage(), originalException);
 			event.setMethod(request.getMethod());
 			try {
 				event.setRequestUri(HTTPUtils.getURI(request, server.isSecure()));
