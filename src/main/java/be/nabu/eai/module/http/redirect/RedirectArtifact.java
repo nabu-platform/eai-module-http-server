@@ -52,12 +52,27 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
 								&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
 							if (toHost.getConfig().getHost() != null && (!toHost.getConfig().getHost().equals(uri.getHost()) || fromSecure != toSecure)) {
-								String authority;
-								// allow redirects to use aliases
-								if (toHost.getConfig().getAliases() != null && toHost.getConfig().getAliases().contains(uri.getHost())) {
+								String authority = null;
+								if (uri.getHost().equals(toHost.getConfig().getHost())) {
 									authority = uri.getHost();
 								}
-								else {
+								// allow redirects to use aliases
+								else if (toHost.getConfig().getAliases() != null && toHost.getConfig().getAliases().contains(uri.getHost())) {
+									authority = uri.getHost();
+								}
+								// we want to allow automatic redirects from "www.example.com" to "example.com" and from "example.com" to "www.example.com" depending on the settings
+								else if (toHost.getConfig().getAliases() != null) {
+									if (uri.getHost().startsWith("www.")) {
+										String hostToTry = uri.getHost().substring("www.".length());
+										if (toHost.getConfig().getAliases().contains(hostToTry)) {
+											authority = hostToTry;
+										}
+									}
+									else if (toHost.getConfig().getAliases().contains("www." + uri.getHost())) {
+										authority = "www." + uri.getHost();
+									}
+								}
+								if (authority == null) {
 									authority = toHost.getConfig().getHost();
 								}
 								if (authority == null) {
