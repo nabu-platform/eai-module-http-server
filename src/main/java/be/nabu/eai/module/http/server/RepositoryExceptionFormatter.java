@@ -455,6 +455,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		byte [] bytes = output.toByteArray();
 		if (event != null) {
+			event.setResponseCode(httpCode);
 			event.setSizeOut((long) bytes.length);
 			server.getRepository().getComplexEventDispatcher().fire(event, server);
 		}

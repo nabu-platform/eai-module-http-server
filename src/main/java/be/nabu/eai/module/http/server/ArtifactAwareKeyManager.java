@@ -156,14 +156,16 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 	}
 
 	private List<VirtualHostArtifact> getVirtualHosts() {
-		if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
-			synchronized(this) {
-				if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
-					this.virtualHosts = repository.getArtifacts(VirtualHostArtifact.class);
-				}
-			}
-		}
-		return virtualHosts;
+		// caching the results here might represent problems with dynamic virtual hosts (see waf)
+		return repository.getArtifacts(VirtualHostArtifact.class);
+//		if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
+//			synchronized(this) {
+//				if (virtualHosts == null || EAIResourceRepository.isDevelopment()) {
+//					this.virtualHosts = repository.getArtifacts(VirtualHostArtifact.class);
+//				}
+//			}
+//		}
+//		return virtualHosts;
 	}
 
 	/**
