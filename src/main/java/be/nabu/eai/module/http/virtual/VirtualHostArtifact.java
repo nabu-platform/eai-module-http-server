@@ -18,6 +18,7 @@ import be.nabu.eai.module.http.virtual.api.RequestSubscriber;
 import be.nabu.eai.module.http.virtual.api.ResponseRewriter;
 import be.nabu.eai.module.http.virtual.api.SourceImpl;
 import be.nabu.eai.module.keystore.KeyStoreArtifact;
+import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.repository.util.SystemPrincipal;
@@ -39,7 +40,9 @@ import be.nabu.libs.http.client.nio.NIOHTTPClientImpl;
 import be.nabu.libs.http.core.CustomCookieStore;
 import be.nabu.libs.http.core.DefaultHTTPResponse;
 import be.nabu.libs.http.core.HTTPUtils;
+import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.libs.http.server.nio.MemoryMessageDataProvider;
+import be.nabu.libs.http.server.util.RangeHandler;
 import be.nabu.libs.nio.PipelineUtils;
 import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.resources.api.ResourceContainer;
@@ -102,6 +105,14 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 									return responseSubscriber.handle(new SourceImpl(sourceContext), event);
 								}
 							});
+						}
+						// enable range support _before_ we enable the content encoding, otherwise it will be messed up
+						if (getConfig().isEnableRangeSupport()) {
+							dispatcher.subscribe(HTTPResponse.class, new RangeHandler());
+						}
+						// make sure we encode responses as much as possible
+						if (!EAIResourceRepository.isDevelopment() && getConfig().isEnableCompression()) {
+							dispatcher.subscribe(HTTPResponse.class, HTTPServerUtils.ensureContentEncoding());
 						}
 						if (getConfig().isEnableHsts()) {
 							EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {

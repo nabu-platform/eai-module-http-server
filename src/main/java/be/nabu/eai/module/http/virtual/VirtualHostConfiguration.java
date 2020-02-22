@@ -15,7 +15,7 @@ import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.libs.services.api.DefinedService;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
@@ -23,7 +23,7 @@ public class VirtualHostConfiguration {
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	private boolean useAcme;
-	private boolean enableHsts, hstsPreload, hstsSubDomains;
+	private boolean enableHsts, hstsPreload, hstsSubDomains, enableRangeSupport, enableCompression = true;
 	private Long hstsMaxAge;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
@@ -143,6 +143,24 @@ public class VirtualHostConfiguration {
 	}
 	public void setHstsSubDomains(boolean hstsSubDomains) {
 		this.hstsSubDomains = hstsSubDomains;
+	}
+	
+	@Advanced
+	@Comment(title = "By setting this to true, you enable range support for your http responses. This is mostly interesting when streaming large files.")
+	public boolean isEnableRangeSupport() {
+		return enableRangeSupport;
+	}
+	public void setEnableRangeSupport(boolean enableRangeSupport) {
+		this.enableRangeSupport = enableRangeSupport;
+	}
+	
+	@Advanced
+	@Comment(title = "By setting this to true, the server will attempt to compress the responses in accordance with client capabilities")
+	public boolean isEnableCompression() {
+		return enableCompression;
+	}
+	public void setEnableCompression(boolean enableCompression) {
+		this.enableCompression = enableCompression;
 	}
 	
 }
