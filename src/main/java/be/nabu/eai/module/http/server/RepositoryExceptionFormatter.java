@@ -243,11 +243,11 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 					// couldn't parse date...
 				}
 			}
-			// inject the header values, the source values may point to a proxy
+			// inject the correct values based on the headers
+			event.setSourceIp(HTTPUtils.getRemoteAddress(server.getConfig().isProxied(), request.getContent().getHeaders()));
+			event.setSourceHost(HTTPUtils.getRemoteHost(server.getConfig().isProxied(), request.getContent().getHeaders()));
+			// we do the port manually...
 			if (server.getConfig().isProxied() && server.getConfig().getHeaderMapping() != null) {
-				// if it is null, still better than the proxy server value?
-				event.setSourceIp(getMappedHeaderValue(request, ServerHeader.REMOTE_ADDRESS.getName()));
-				event.setSourceHost(getMappedHeaderValue(request, ServerHeader.REMOTE_HOST.getName()));
 				String sourcePort = getMappedHeaderValue(request, ServerHeader.REMOTE_PORT.getName());
 				event.setSourcePort(sourcePort == null ? null : Integer.parseInt(sourcePort));
 			}

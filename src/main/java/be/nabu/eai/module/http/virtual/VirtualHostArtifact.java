@@ -22,6 +22,7 @@ import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.repository.util.SystemPrincipal;
+import be.nabu.eai.server.Server;
 import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.events.api.EventDispatcher;
@@ -36,6 +37,7 @@ import be.nabu.libs.http.acme.AcmeClient.ChallengeType;
 import be.nabu.libs.http.acme.Challenge;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
+import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.client.nio.NIOHTTPClientImpl;
 import be.nabu.libs.http.core.CustomCookieStore;
 import be.nabu.libs.http.core.DefaultHTTPResponse;
@@ -63,6 +65,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	private boolean started;
 	private String originalKeyAlias;
 	private Logger logger = LoggerFactory.getLogger(getClass());
+	private boolean routeOnMain = false; 		// this was intended for a feature where we can route any http traffic over the main http server and bypass any firewalls etc. some details are however unclear so it is disabled for now
 	
 	public VirtualHostArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "virtual-host.xml", VirtualHostConfiguration.class);
@@ -170,6 +173,12 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				getConfiguration().getServer().getServer().unroute(null);
 			}
 		}
+		if (getRepository().getServiceRunner() instanceof Server && routeOnMain) {
+			HTTPServer server = ((Server) getRepository().getServiceRunner()).getHTTPServer();
+			if (server != null) {
+				server.unroute(getId());
+			}
+		}
 		started = false;
 	}
 
@@ -198,8 +207,14 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 			else {
 				getConfiguration().getServer().getServer().route(null, getDispatcher());
 			}
-			started = true;
 		}
+		if (getRepository().getServiceRunner() instanceof Server && routeOnMain) {
+			HTTPServer server = ((Server) getRepository().getServiceRunner()).getHTTPServer();
+			if (server != null) {
+				server.route(getId(), getDispatcher());
+			}
+		}
+		started = true;
 	}
 	
 	public void validateAcme() {
