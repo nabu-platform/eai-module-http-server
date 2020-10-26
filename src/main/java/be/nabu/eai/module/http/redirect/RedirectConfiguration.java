@@ -5,16 +5,19 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import be.nabu.eai.api.EnvironmentSpecific;
 import be.nabu.eai.module.http.virtual.VirtualHostArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 
 @XmlRootElement(name = "redirect")
-@XmlType(propOrder = { "fromHost", "toHost", "fromPath", "toPath", "permanent" })
+@XmlType(propOrder = { "fromHost", "toHost", "fromPath", "toPath", "permanent", "enabled" })
 public class RedirectConfiguration {
 	
 	private VirtualHostArtifact fromHost, toHost;
 	private String fromPath, toPath;
 	private boolean permanent;
+	// default true for backwards compatibility
+	private boolean enabled = true;
 	
 	@NotNull
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
@@ -48,5 +51,12 @@ public class RedirectConfiguration {
 	}
 	public void setPermanent(boolean permanent) {
 		this.permanent = permanent;
+	}
+	@EnvironmentSpecific
+	public boolean isEnabled() {
+		return enabled;
+	}
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 }

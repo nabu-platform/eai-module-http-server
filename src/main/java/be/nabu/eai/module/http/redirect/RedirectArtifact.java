@@ -36,7 +36,7 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 
 	@Override
 	public void start() throws IOException {
-		if (subscription == null && getConfig().getFromHost() != null) {
+		if (subscription == null && getConfig().getFromHost() != null && getConfig().isEnabled()) {
 			subscription = getConfig().getFromHost().getDispatcher().subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
 				@Override
 				public HTTPResponse handle(HTTPRequest request) {

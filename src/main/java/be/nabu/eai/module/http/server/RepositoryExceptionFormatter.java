@@ -202,10 +202,11 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		// add the server context
 		context.add(server.getId());
 		
-		Notification notification = new Notification();
-		
 		HTTPException exception = originalException instanceof HTTPException ? (HTTPException) originalException : new HTTPException(500, originalException);
 		ServiceException serviceException = getServiceException(exception);
+		
+		// inherit the id from the service exception (if any)
+		Notification notification = serviceException == null ? new Notification() : new Notification(serviceException.getId());
 		
 		HTTPComplexEventImpl event = null;
 		if (server.getRepository().getComplexEventDispatcher() != null) {
