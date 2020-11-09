@@ -46,8 +46,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 
 	public static final String MODULE = "nabu.protocols.http.server";
 	
-	private static final String HTTP_IO_POOL_SIZE = "be.nabu.eai.http.ioPoolSize";
-	private static final String HTTP_PROCESS_POOL_SIZE = "be.nabu.eai.http.processPoolSize";
+	public static final String HTTP_IO_POOL_SIZE = "be.nabu.eai.http.ioPoolSize";
+	public static final String HTTP_PROCESS_POOL_SIZE = "be.nabu.eai.http.processPoolSize";
 	private Thread thread;
 	private RoutingMessageDataProvider messageDataProvider;
 	private Logger logger = LoggerFactory.getLogger(getClass());

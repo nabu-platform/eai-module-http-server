@@ -15,6 +15,7 @@ import be.nabu.eai.module.keystore.KeyStoreArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.eai.repository.util.KeyValueMapAdapter;
 import be.nabu.libs.http.core.ServerHeader;
+import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
@@ -46,7 +47,7 @@ public class HTTPServerConfiguration {
 		this.port = port;
 	}
 	
-	@Comment(title = "You can enable ssl by configuring a keystore here and setting the alias to the correct key on each virtual host")
+	@Field(group = "security", comment = "You can enable ssl by configuring a keystore here and setting the alias to the correct key on each virtual host")
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	public KeyStoreArtifact getKeystore() {
@@ -56,7 +57,7 @@ public class HTTPServerConfiguration {
 		this.keystore = keystore;
 	}
 	
-	@Comment(title = "The amount of threads that the server has to process incoming requests, the default is 10", description = "The default can be overwritten using the system property 'be.nabu.eai.http.processPoolSize'")
+	@Field(group = "limits", comment = "The amount of threads that the server has to process incoming requests, the default can be overwritten using the system property 'be.nabu.eai.http.processPoolSize'")
 	@EnvironmentSpecific
 	public Integer getPoolSize() {
 		return poolSize;
@@ -65,8 +66,7 @@ public class HTTPServerConfiguration {
 		this.poolSize = poolSize;
 	}
 	
-	@Comment(title = "This option lets you decide what to do with client certificates.")
-	@Advanced
+	@Field(group = "security", show = "keystore != null", comment = "This option lets you decide what to do with client certificates.")
 	@EnvironmentSpecific
 	public SSLServerMode getSslServerMode() {
 		return sslServerMode;
@@ -75,7 +75,7 @@ public class HTTPServerConfiguration {
 		this.sslServerMode = sslServerMode;
 	}
 	
-	@Comment(title = "The amount of threads the server has to communicate with the client (both incoming and outgoing), the default is 5", description = "The default can be overwritten using the system property 'be.nabu.eai.http.ioPoolSize'")
+	@Field(group = "limits", comment = "The amount of threads the server has to communicate with the client (both incoming and outgoing), the default can be overwritten using the system property 'be.nabu.eai.http.ioPoolSize'")
 	@EnvironmentSpecific
 	public Integer getIoPoolSize() {
 		return ioPoolSize;
@@ -85,7 +85,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@Advanced
-	@Comment(title = "The maximum amount of connections this server will accept, the default is unlimited")
+	@Field(group = "limits", comment = "The maximum amount of connections this server will accept.")
 	@EnvironmentSpecific
 	public Integer getMaxTotalConnections() {
 		return maxTotalConnections;
@@ -95,7 +95,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@Advanced
-	@Comment(title = "The maximum amount of connections this server will accept per client, the default is unlimited")
+	@Field(group = "limits", comment = "The maximum amount of connections this server will accept per client.")
 	@EnvironmentSpecific
 	public Integer getMaxConnectionsPerClient() {
 		return maxConnectionsPerClient;
@@ -104,7 +104,7 @@ public class HTTPServerConfiguration {
 		this.maxConnectionsPerClient = maxConnectionsPerClient;
 	}
 	
-	@Comment(title = "The maximum size of an incoming request in bytes, anything above this will be cut off")
+	@Field(group = "limits", comment = "The maximum size of an incoming request in bytes, anything above this will be cut off")
 	@Advanced
 	public Long getMaxSizePerRequest() {
 		return maxSizePerRequest;
@@ -113,8 +113,7 @@ public class HTTPServerConfiguration {
 		this.maxSizePerRequest = maxSizePerRequest;
 	}
 	
-	@Advanced
-	@Comment(title = "The maximum amount of time it can take for a single request to make it to the server, measured from the arrival of the first byte. The default is unlimited.")
+	@Field(group = "limits", comment = "The maximum amount of time it can take for a single request to make it to the server, measured from the arrival of the first byte.")
 	@EnvironmentSpecific
 	public Long getReadTimeout() {
 		return readTimeout;
@@ -123,8 +122,7 @@ public class HTTPServerConfiguration {
 		this.readTimeout = readTimeout;
 	}
 	
-	@Advanced
-	@Comment(title = "The maximum amount of time it can take for a single response to make it to the client, measured from the departure of the first byte. The default is unlimited.")
+	@Field(group = "limits", comment = "The maximum amount of time it can take for a single response to make it to the client, measured from the departure of the first byte.")
 	@EnvironmentSpecific
 	public Long getWriteTimeout() {
 		return writeTimeout;
@@ -133,8 +131,7 @@ public class HTTPServerConfiguration {
 		this.writeTimeout = writeTimeout;
 	}
 	
-	@Advanced
-	@Comment(title = "The maximum amount of requests that can be queued for processing for a given connection. The default is unlimited.")
+	@Field(group = "limits", comment = "The maximum amount of requests that can be queued for processing for a given connection. The default is unlimited.")
 	@EnvironmentSpecific
 	public Integer getRequestLimit() {
 		return requestLimit;
@@ -143,8 +140,7 @@ public class HTTPServerConfiguration {
 		this.requestLimit = requestLimit;
 	}
 	
-	@Comment(title = "The maximum amount of responses that can be queued for a given connection. The default is unlimited.")
-	@Advanced
+	@Field(group = "limits", comment = "The maximum amount of responses that can be queued for a given connection. The default is unlimited.")
 	@EnvironmentSpecific
 	public Integer getResponseLimit() {
 		return responseLimit;
@@ -153,7 +149,7 @@ public class HTTPServerConfiguration {
 		this.responseLimit = responseLimit;
 	}
 	
-	@Comment(title = "How long a connection can be idle before it is disconnected by the server, the default is 5 minutes. If set to 0 it will never time out.")
+	@Field(group = "limits", comment = "How long a connection can be idle before it is disconnected by the server, the default is 5 minutes. If set to 0 it will never time out.")
 	public Long getIdleTimeout() {
 		return idleTimeout;
 	}
@@ -161,7 +157,7 @@ public class HTTPServerConfiguration {
 		this.idleTimeout = idleTimeout;
 	}
 	
-	@Comment(title = "How long a connection (even an active one) can exist before it is disconnected by the server, the default is 1 hour. If set to 0 it will never be disconnected.")
+	@Field(group = "limits", comment = "How long a connection (even an active one) can exist before it is disconnected by the server, the default is 1 hour. If set to 0 it will never be disconnected.")
 	public Long getLifetime() {
 		return lifetime;
 	}
@@ -177,7 +173,7 @@ public class HTTPServerConfiguration {
 		this.enabled = enabled;
 	}
 	
-	@Advanced
+	@Field(group = "limits", comment = "The maximum size of the initial line in the HTTP request")
 	public Integer getMaxInitialLineLength() {
 		return maxInitialLineLength;
 	}
@@ -185,7 +181,7 @@ public class HTTPServerConfiguration {
 		this.maxInitialLineLength = maxInitialLineLength;
 	}
 	
-	@Advanced
+	@Field(group = "limits", comment = "The maximum size of the headers in the HTTP request")
 	public Integer getMaxHeaderSize() {
 		return maxHeaderSize;
 	}
@@ -193,7 +189,7 @@ public class HTTPServerConfiguration {
 		this.maxHeaderSize = maxHeaderSize;
 	}
 	
-	@Advanced
+	@Field(group = "limits", comment = "The maximum size a single chunk in a chunked HTTP request")
 	public Integer getMaxChunkSize() {
 		return maxChunkSize;
 	}
@@ -202,7 +198,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
-	@Advanced
+	@Field(group = "proxy", comment = "Whether or not there is a proxy in front of this server.")
 	public boolean isProxied() {
 		return proxied;
 	}
@@ -211,7 +207,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
-	@Advanced
+	@Field(group = "proxy", show = "proxied", comment = "The port the proxy is on.")
 	public Integer getProxyPort() {
 		return proxyPort;
 	}
@@ -220,7 +216,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
-	@Advanced
+	@Field(group = "proxy", show = "proxied", comment = "Whether or not the proxy is secure.")
 	public boolean isProxySecure() {
 		return proxySecure;
 	}
@@ -229,20 +225,16 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
-	@Advanced
+	@Field(group = "proxy", show = "proxied")
 	@XmlJavaTypeAdapter(value = KeyValueMapAdapter.class)
 	public Map<String, String> getHeaderMapping() {
 		if (headerMapping == null) {
 			headerMapping = new HashMap<String, String>();
 		}
-		if (isProxied() && headerMapping.isEmpty()) {
+		if (headerMapping.isEmpty()) {
 			for (ServerHeader header : ServerHeader.values()) {
 				headerMapping.put(header.getName(), null);
 			}
-		}
-		// if we are not being proxied, we don't care about the header mapping
-		else if (!isProxied()) {
-			headerMapping.clear();
 		}
 		return headerMapping;
 	}
