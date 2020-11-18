@@ -15,14 +15,17 @@ import javax.net.ssl.X509KeyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.nabu.eai.module.http.virtual.VirtualHostArtifact;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.RepositoryThreadFactory;
 import be.nabu.eai.repository.api.LicenseManager;
 import be.nabu.eai.repository.api.LicensedRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
+import be.nabu.eai.server.Server;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
+import be.nabu.libs.artifacts.api.TwoPhaseOfflineableArtifact;
 import be.nabu.libs.artifacts.api.TwoPhaseStartableArtifact;
 import be.nabu.libs.events.api.EventTarget;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
@@ -41,8 +44,15 @@ import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.cep.impl.ComplexEventImpl;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
-
-public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements TwoPhaseStartableArtifact, StoppableArtifact, TunnelableArtifact {
+/*
+ * two offline modes supported: 
+ * - round robin: we switch to another port an keep entire application alive (this assumes with load balancer ignoring "down" server)
+ * 		we can still spotcheck and validate the application on the other port
+ * 		if done well, the application is never down
+ * - all or nothing: the server stays available on the default port, but any application on top of it starts sending back 503 (unless specifically bypassing offline mode)
+ * 		the frontend can then switch to showing a proper "offline" message
+ */
+public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> implements TwoPhaseStartableArtifact, StoppableArtifact, TunnelableArtifact, TwoPhaseOfflineableArtifact {
 
 	public static final String MODULE = "nabu.protocols.http.server";
 	
@@ -60,7 +70,10 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	
 	@Override
 	public void stop() throws IOException {
-		getServer().stop();
+		// don't use getServer here! otherwise we go into reload loop
+		if (server != null) {
+			server.stop();
+		}
 		// reset the server, we may want to restart it with different values? (e.g. the keystore has been updated)
 		server = null;
 		thread = null;
@@ -74,12 +87,22 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 
 	@Override
 	public void start() throws IOException {
+		start(false);
+	}
+
+	private void start(final boolean restartHosts) throws IOException {
+		// always stop first
+		stop();
+		// if enabled, we start
 		if (getConfig().isEnabled()) {
 			// build the server in the main thread to prevent classloader deadlocks cross thread
-			final HTTPServer server = getServer();
+			final HTTPServer server = getServer(false);
 			thread = new Thread(new Runnable() {
 				@Override
 				public void run() {
+					if (restartHosts) {
+						restartHosts();
+					}
 					try {
 						server.start();
 					}
@@ -88,6 +111,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 					}
 				}
 			});
+			thread.setName(getId());
 		}
 	}
 	
@@ -103,20 +127,40 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	}
 	
 	public HTTPServer getServer() {
+		boolean offline = false;
+		// if we have an offline port, we can have two modes, otherwise we can't!
+		if (getConfig().getOfflinePort() != null && getRepository().getServiceRunner() instanceof Server) {
+			offline = ((Server) getRepository().getServiceRunner()).isOffline();
+		}
+		return getServer(offline);
+	}
+	
+	private HTTPServer getServer(boolean offline) {
+		Integer port = offline && getConfig().getOfflinePort() != null ? getConfig().getOfflinePort() : getConfig().getPort();
+		// if the port is null, we don't have an offline port (or it is not in offline mode), so we are definitely online but don't have a port
+		if (getConfig().getKeystore() != null) {
+			if (port == null) {
+				port = 443;
+			}
+		}
+		else if (port == null) {
+			port = 80;
+		}
+		if (server != null && server.getPort() != port) {
+			try {
+				stop();
+			}
+			catch (IOException e) {
+				logger.error("Could not stop the server", e);
+			}
+		}
 		if (server == null) {
 			synchronized(this) {
 				if (server == null) {
 					try {
 						SSLContext context = null;
-						Integer port = getConfiguration().getPort();
-						if (getConfiguration().getKeystore() != null) {
+						if (getConfig().getKeystore() != null) {
 							context = generateSecurityContext();
-							if (port == null) {
-								port = 443;
-							}
-						}
-						else if (port == null) {
-							port = 80;
 						}
 						Integer ioPoolSize = getConfiguration().getIoPoolSize() == null ? new Integer(System.getProperty(HTTP_IO_POOL_SIZE, "5")) : getConfiguration().getIoPoolSize();
 						Integer processPoolSize = getConfiguration().getPoolSize() == null ? new Integer(System.getProperty(HTTP_PROCESS_POOL_SIZE, "10")) : getConfiguration().getPoolSize();
@@ -274,7 +318,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 
 	@Override
 	public void finish() {
-		if (thread != null) {
+		// start if not yet started
+		if (thread != null && thread.getState() == Thread.State.NEW) {
 			thread.start();
 		}
 	}
@@ -283,4 +328,82 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	public boolean isFinished() {
 		return isStarted() && thread.isAlive();
 	}
+
+	@Override
+	public void online() throws IOException {
+		// if we are running on the "offline port", we need to switch to the main port
+		// otherwise we assume the server is simply running correctly
+		if (getConfig().getOfflinePort() != null) {
+			start(true);
+		}
+	}
+
+	@Override
+	public void offline() throws IOException {
+		// if we have an offline port, we need to switch from the main to that one
+		if (getConfig().getOfflinePort() != null && getConfig().isEnabled()) {
+			// build the server in the main thread to prevent classloader deadlocks cross thread
+			final HTTPServer server = getServer(true);
+			thread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					// restart the hosts so they hook up to this http server now
+					restartHosts();
+					try {
+						server.start();
+					}
+					catch (IOException e) {
+						logger.error("Could not start http server: " + getId(), e);
+					}
+				}
+			});
+			thread.setName(getId());
+		}
+	}
+	
+	// if we play around with the underlying http server (e.g. for online/offline cycles) we should restart the virtual hosts so they can re-register
+	private void restartHosts() {
+		for (VirtualHostArtifact host : getRepository().getArtifacts(VirtualHostArtifact.class)) {
+			HTTPServerArtifact serverArtifact = host.getConfig().getServer();
+			// bypass equality of objects, go straight for id
+			if (serverArtifact.getId().equals(getId())) {
+				try {
+					if (host.isStarted()) {
+						host.stop();
+					}
+					host.start();
+				}
+				catch (Exception e) {
+					logger.error("Could not restart virtual host: " + host.getId());
+				}
+			}
+		}
+	}
+
+	@Override
+	public void startOffline() throws IOException {
+		if (getConfig().isEnabled()) {
+			// start on the offline port
+			if (getConfig().getOfflinePort() != null) {
+				offline();
+			}
+			// start on the main port
+			else {
+				start();
+			}
+		}
+	}
+
+	@Override
+	public void onlineFinish() {
+		// when we come online, do the finishing!
+		finish();
+	}
+
+	@Override
+	public void offlineFinish() {
+		// when we go offline, do the finishing as well
+		finish();
+	}
+	
 }

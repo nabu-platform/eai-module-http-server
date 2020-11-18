@@ -19,9 +19,9 @@ import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
 public class HTTPServerConfiguration {
-	private Integer port;
+	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
 	private SSLServerMode sslServerMode;
 	private Integer poolSize, ioPoolSize, maxTotalConnections, maxConnectionsPerClient;
@@ -258,6 +258,14 @@ public class HTTPServerConfiguration {
 	}
 	public void setErrorInstanceUri(URI errorInstanceUri) {
 		this.errorInstanceUri = errorInstanceUri;
+	}
+	
+	@Advanced
+	public Integer getOfflinePort() {
+		return offlinePort;
+	}
+	public void setOfflinePort(Integer offlinePort) {
+		this.offlinePort = offlinePort;
 	}
 	
 }
