@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.nabu.eai.module.http.server.HTTPServerArtifact;
+import be.nabu.eai.module.http.server.RepositoryExceptionFormatter;
 import be.nabu.eai.module.http.virtual.api.RequestRewriter;
 import be.nabu.eai.module.http.virtual.api.RequestSubscriber;
 import be.nabu.eai.module.http.virtual.api.ResponseRewriter;
@@ -28,6 +30,7 @@ import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.events.api.EventDispatcher;
 import be.nabu.libs.events.api.EventHandler;
 import be.nabu.libs.events.api.EventSubscription;
+import be.nabu.libs.events.api.ResponseHandler;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.HTTPCodes;
 import be.nabu.libs.http.HTTPException;
@@ -55,6 +58,7 @@ import be.nabu.utils.mime.api.ModifiablePart;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.MimeUtils;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
+import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
 import be.nabu.utils.security.KeyPairType;
 import be.nabu.utils.security.SecurityUtils;
 import be.nabu.utils.security.SignatureType;
@@ -65,12 +69,46 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	private boolean started;
 	private String originalKeyAlias;
 	private Logger logger = LoggerFactory.getLogger(getClass());
-	private boolean routeOnMain = false; 		// this was intended for a feature where we can route any http traffic over the main http server and bypass any firewalls etc. some details are however unclear so it is disabled for now
 	
 	public VirtualHostArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "virtual-host.xml", VirtualHostConfiguration.class);
 	}
-
+	
+	public boolean isProxied() {
+		HTTPServerArtifact server = getConfig().getServer();
+		if (server != null) {
+			return server.getConfig().isProxied();
+		}
+		// we don't know at this point whether you are being proxied or not. we might in the future so we internalize it
+		else if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
+			return false;
+		}
+		return false;
+	}
+	
+	public boolean isSecure() {
+		HTTPServerArtifact server = getConfig().getServer();
+		if (server != null) {
+			return server.isSecure();
+		}
+		// we don't know at this point whether you are being proxied or not. we might in the future so we internalize it
+		else if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
+			return false;
+		}
+		return false;
+	}
+	
+	public Integer getPort() {
+		HTTPServerArtifact server = getConfig().getServer();
+		if (server != null) {
+			return server.getConfig().isProxied() ? server.getConfig().getProxyPort() : server.getConfig().getPort();
+		}
+		else if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
+			return ((Server) getRepository().getServiceRunner()).getPort();
+		}
+		return null;
+	}
+	
 	public EventDispatcher getDispatcher() {
 		if (dispatcher == null) {
 			synchronized(this) {
@@ -173,10 +211,35 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				getConfiguration().getServer().getServer().unroute(null);
 			}
 		}
-		if (getRepository().getServiceRunner() instanceof Server && routeOnMain) {
+		if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
 			HTTPServer server = ((Server) getRepository().getServiceRunner()).getHTTPServer();
 			if (server != null) {
-				server.unroute(getId());
+				// if it is named, we unroute it
+				if (getConfiguration().getHost() != null) {
+					server.unroute(getConfiguration().getHost());
+					if (getConfiguration().getAliases() != null) {
+						for (String host : getConfiguration().getAliases()) {
+							server.unroute(host);
+						}
+					}
+				}
+				// we can't unroute everything that is null on the server
+				// and we can't unroute this particular dispatcher
+				// so instead, we shut the dispatcher off and set it to null, forcing a new dispatcher to be used upon reregister
+				else {
+					// filter all events
+					// this is a known memory leak, but it should not be triggered often, minimizing the impact
+					// if we have problems with this in the future we can extend either the dispatcher to allow unsubscribing all (reducing the memory leak) or update the server to unroute by dispatcher rather than host
+					// perhaps the route() should return an unsubscriber handle?
+					getDispatcher().filter(Object.class, new EventHandler<Object, Boolean>() {
+						@Override
+						public Boolean handle(Object event) {
+							return true;
+						}
+					});
+					// unset the dispatcher
+					dispatcher = null;
+				}
 			}
 		}
 		started = false;
@@ -208,10 +271,40 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				getConfiguration().getServer().getServer().route(null, getDispatcher());
 			}
 		}
-		if (getRepository().getServiceRunner() instanceof Server && routeOnMain) {
-			HTTPServer server = ((Server) getRepository().getServiceRunner()).getHTTPServer();
+		if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
+			final HTTPServer server = ((Server) getRepository().getServiceRunner()).getHTTPServer();
 			if (server != null) {
-				server.route(getId(), getDispatcher());
+				if (getConfiguration().getHost() != null) {
+					server.route(getConfiguration().getHost(), getDispatcher());
+					if (getConfiguration().getAliases() != null) {
+						for (String host : getConfiguration().getAliases()) {
+							server.route(host, getDispatcher());
+						}
+					}
+				}
+				else {
+					server.getDispatcher(null).subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
+						@Override
+						public HTTPResponse handle(HTTPRequest event) {
+							if (started) {
+								return getDispatcher().fire(event, server, new ResponseHandler<HTTPRequest, HTTPResponse>() {
+									@Override
+									public HTTPResponse handle(HTTPRequest event, Object response, boolean isLast) {
+										if (response instanceof HTTPResponse) {
+											return (HTTPResponse) response;
+										}
+										else if (response instanceof Exception) {
+											((Exception) response).printStackTrace();
+											return new DefaultHTTPResponse(500, HTTPCodes.getMessage(500), new PlainMimeEmptyPart(null));
+										}
+										return null;
+									}
+								});
+							}
+							return null;
+						}
+					});
+				}
 			}
 		}
 		started = true;

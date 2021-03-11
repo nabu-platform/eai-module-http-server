@@ -17,7 +17,7 @@ import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.types.api.annotation.Field;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
@@ -27,6 +27,8 @@ public class VirtualHostConfiguration {
 	private boolean useAcme;
 	private boolean enableHsts, hstsPreload, hstsSubDomains, enableRangeSupport = true, enableCompression = true;
 	private Long hstsMaxAge;
+	// mount on the internal server, can be used to offer additional services that mix integration server with developer
+	private boolean internalServer;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
@@ -55,7 +57,7 @@ public class VirtualHostConfiguration {
 		this.keyAlias = keyAlias;
 	}
 	
-	@Comment(title = "The server this virtual host is operating on")
+	@Field(hide = "internalServer", comment = "The server this virtual host is operating on")
 	@EnvironmentSpecific
 	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	public HTTPServerArtifact getServer() {
@@ -160,6 +162,15 @@ public class VirtualHostConfiguration {
 	}
 	public void setEnableCompression(boolean enableCompression) {
 		this.enableCompression = enableCompression;
+	}
+	
+	@Field(hide = "server != null")
+	@Advanced
+	public boolean isInternalServer() {
+		return internalServer;
+	}
+	public void setInternalServer(boolean internalServer) {
+		this.internalServer = internalServer;
 	}
 	
 }
