@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.module.http.server.HTTPServerArtifact;
-import be.nabu.eai.module.http.server.RepositoryExceptionFormatter;
 import be.nabu.eai.module.http.virtual.api.RequestRewriter;
 import be.nabu.eai.module.http.virtual.api.RequestSubscriber;
 import be.nabu.eai.module.http.virtual.api.ResponseRewriter;
@@ -40,21 +39,27 @@ import be.nabu.libs.http.acme.AcmeClient.ChallengeType;
 import be.nabu.libs.http.acme.Challenge;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
+import be.nabu.libs.http.api.LinkableHTTPResponse;
 import be.nabu.libs.http.api.server.HTTPServer;
 import be.nabu.libs.http.client.nio.NIOHTTPClientImpl;
 import be.nabu.libs.http.core.CustomCookieStore;
 import be.nabu.libs.http.core.DefaultHTTPResponse;
 import be.nabu.libs.http.core.HTTPUtils;
+import be.nabu.libs.http.core.HttpMessage;
 import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.libs.http.server.nio.MemoryMessageDataProvider;
 import be.nabu.libs.http.server.util.RangeHandler;
 import be.nabu.libs.nio.PipelineUtils;
+import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.nio.api.SourceContext;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.services.pojo.POJOUtils;
+import be.nabu.utils.cep.impl.CEPUtils;
+import be.nabu.utils.cep.impl.HTTPComplexEventImpl;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.mime.api.Header;
 import be.nabu.utils.mime.api.ModifiablePart;
+import be.nabu.utils.mime.impl.FormatException;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.MimeUtils;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
@@ -184,6 +189,44 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 							// put it at the end for now
 							// note that this is registered in the beginning however, other post processors will likely execute after this one, so the demote() has little added value for now
 							subscription.demote();
+						}
+						if (getRepository().getComplexEventDispatcher() != null) {
+							if (getConfig().isCaptureErrors() || getConfig().isCaptureSuccessful()) {
+								EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
+									@Override
+									public HTTPResponse handle(HTTPResponse response) {
+										if ((getConfig().isCaptureSuccessful() && response.getCode() < 400) || (getConfig().isCaptureErrors() && response.getCode() >= 400)) {
+											if (response instanceof LinkableHTTPResponse) {
+												HTTPRequest request = ((LinkableHTTPResponse) response).getRequest();
+												if (request != null) {
+													HTTPComplexEventImpl event = new HTTPComplexEventImpl();
+													event.setResponseCode(response.getCode());
+													event.setMethod(request.getMethod());
+													try {
+														event.setRequestUri(HTTPUtils.getURI(request, isSecure()));
+													}
+													catch (FormatException e) {
+														// best effort
+														logger.warn("Could not format uri", e);
+													}
+													event.setArtifactId(getId());
+													event.setEventCategory("http-message");
+													Pipeline pipeline = PipelineUtils.getPipeline();
+													CEPUtils.enrich(event, getClass(), "http-message-in", pipeline == null || pipeline.getSourceContext() == null ? null : pipeline.getSourceContext().getSocketAddress(), null, null);
+													event.setApplicationProtocol("HTTP");
+													event.setCorrelationId(MimeUtils.getCorrelationId(request.getContent().getHeaders()));
+													HttpMessage messageIn = HTTPUtils.toMessage(request);
+													HttpMessage messageOut = HTTPUtils.toMessage(response);
+													event.setData("# Request\n\n" + messageIn.getMessage() + "\n\n# Response\n\n" + messageOut.getMessage());
+													getRepository().getComplexEventDispatcher().fire(event, VirtualHostArtifact.this);
+												}
+											}
+										}
+										return null;
+									}
+								});
+								subscription.demote();
+							}
 						}
 						this.dispatcher = dispatcher;
 					}

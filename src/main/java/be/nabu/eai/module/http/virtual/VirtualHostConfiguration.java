@@ -17,7 +17,7 @@ import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.types.api.annotation.Field;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer", "captureErrors", "captureSuccessful" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
@@ -25,10 +25,12 @@ public class VirtualHostConfiguration {
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	private boolean useAcme;
-	private boolean enableHsts, hstsPreload, hstsSubDomains, enableRangeSupport = true, enableCompression = true;
+	private boolean enableHsts, hstsPreload, hstsSubDomains, enableRangeSupport, enableCompression = true;
 	private Long hstsMaxAge;
 	// mount on the internal server, can be used to offer additional services that mix integration server with developer
 	private boolean internalServer;
+	// capture requests based on the response
+	private boolean captureErrors, captureSuccessful;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
@@ -171,6 +173,22 @@ public class VirtualHostConfiguration {
 	}
 	public void setInternalServer(boolean internalServer) {
 		this.internalServer = internalServer;
+	}
+	
+	@Advanced
+	public boolean isCaptureErrors() {
+		return captureErrors;
+	}
+	public void setCaptureErrors(boolean captureErrors) {
+		this.captureErrors = captureErrors;
+	}
+	
+	@Advanced
+	public boolean isCaptureSuccessful() {
+		return captureSuccessful;
+	}
+	public void setCaptureSuccessful(boolean captureSuccessful) {
+		this.captureSuccessful = captureSuccessful;
 	}
 	
 }

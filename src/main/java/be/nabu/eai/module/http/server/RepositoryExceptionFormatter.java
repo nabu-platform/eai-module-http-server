@@ -460,11 +460,14 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			event.setSizeOut((long) bytes.length);
 			server.getRepository().getComplexEventDispatcher().fire(event, server);
 		}
-		return new ExceptionHTTPResponse(request, httpCode, HTTPCodes.getMessage(exception.getCode()), new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
+		PlainMimeContentPart content = new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
 			new MimeHeader("Connection", "close"),
 			new MimeHeader("Content-Length", "" + bytes.length),
 			new MimeHeader("Content-Type", contentType + "; charset=" + charset.displayName())
-		), exception, response);
+		);
+		// we can reopen this!
+		content.setReopenable(true);
+		return new ExceptionHTTPResponse(request, httpCode, HTTPCodes.getMessage(exception.getCode()), content, exception, response);
 	}
 
 	private String stacktrace(HTTPException exception) {

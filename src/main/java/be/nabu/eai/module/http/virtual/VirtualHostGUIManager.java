@@ -22,7 +22,10 @@ public class VirtualHostGUIManager extends BaseJAXBGUIManager<VirtualHostConfigu
 
 	@Override
 	protected VirtualHostArtifact newInstance(MainController controller, RepositoryEntry entry, Value<?>... values) throws IOException {
-		return new VirtualHostArtifact(entry.getId(), entry.getContainer(), entry.getRepository());
+		VirtualHostArtifact virtualHostArtifact = new VirtualHostArtifact(entry.getId(), entry.getContainer(), entry.getRepository());
+		// for new ones, it is automatically enabled
+		virtualHostArtifact.getConfig().setEnableCompression(true);
+		return virtualHostArtifact;
 	}
 
 	@Override
