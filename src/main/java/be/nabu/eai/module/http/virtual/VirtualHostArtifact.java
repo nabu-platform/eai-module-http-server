@@ -8,6 +8,8 @@ import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
@@ -190,43 +192,56 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 							// note that this is registered in the beginning however, other post processors will likely execute after this one, so the demote() has little added value for now
 							subscription.demote();
 						}
+						// we always subscribe, other parts of the platform might indicate that logging is required
 						if (getRepository().getComplexEventDispatcher() != null) {
-							if (getConfig().isCaptureErrors() || getConfig().isCaptureSuccessful()) {
-								EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
-									@Override
-									public HTTPResponse handle(HTTPResponse response) {
-										if ((getConfig().isCaptureSuccessful() && response.getCode() < 400) || (getConfig().isCaptureErrors() && response.getCode() >= 400)) {
-											if (response instanceof LinkableHTTPResponse) {
-												HTTPRequest request = ((LinkableHTTPResponse) response).getRequest();
-												if (request != null) {
-													HTTPComplexEventImpl event = new HTTPComplexEventImpl();
-													event.setResponseCode(response.getCode());
-													event.setMethod(request.getMethod());
-													try {
-														event.setRequestUri(HTTPUtils.getURI(request, isSecure()));
-													}
-													catch (FormatException e) {
-														// best effort
-														logger.warn("Could not format uri", e);
-													}
-													event.setArtifactId(getId());
-													event.setEventCategory("http-message");
-													Pipeline pipeline = PipelineUtils.getPipeline();
-													CEPUtils.enrich(event, getClass(), "http-message-in", pipeline == null || pipeline.getSourceContext() == null ? null : pipeline.getSourceContext().getSocketAddress(), null, null);
-													event.setApplicationProtocol("HTTP");
-													event.setCorrelationId(MimeUtils.getCorrelationId(request.getContent().getHeaders()));
-													HttpMessage messageIn = HTTPUtils.toMessage(request);
-													HttpMessage messageOut = HTTPUtils.toMessage(response);
-													event.setData("# Request\n\n" + messageIn.getMessage() + "\n\n# Response\n\n" + messageOut.getMessage());
-													getRepository().getComplexEventDispatcher().fire(event, VirtualHostArtifact.this);
+							EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPResponse response) {
+									if (response instanceof LinkableHTTPResponse) {
+										HTTPRequest request = ((LinkableHTTPResponse) response).getRequest();
+										if (request != null) {
+											String artifactId = getId();
+											boolean capture = (getConfig().isCaptureSuccessful() && response.getCode() < 400) || (getConfig().isCaptureErrors() && response.getCode() >= 400);
+											// we can simply capture all at the virtual host level
+											// or we can tell the virtual host to capture it
+											Map<String, String> headerAsValues = MimeUtils.getHeaderAsValues("X-Nabu-Log", request.getContent().getHeaders());
+											// the keys are lowercased
+											if (!headerAsValues.isEmpty()) {
+												if ("true".equalsIgnoreCase(headerAsValues.get("rawhttp"))) {
+													capture = true;
+												}
+												if (headerAsValues.containsKey("artifactid")) {
+													artifactId = headerAsValues.get("artifactid");
 												}
 											}
+											if (capture) {
+												HTTPComplexEventImpl event = new HTTPComplexEventImpl();
+												event.setResponseCode(response.getCode());
+												event.setMethod(request.getMethod());
+												try {
+													event.setRequestUri(HTTPUtils.getURI(request, isSecure()));
+												}
+												catch (FormatException e) {
+													// best effort
+													logger.warn("Could not format uri", e);
+												}
+												event.setArtifactId(artifactId);
+												event.setEventCategory("http-message");
+												Pipeline pipeline = PipelineUtils.getPipeline();
+												CEPUtils.enrich(event, getClass(), "http-message-in", pipeline == null || pipeline.getSourceContext() == null ? null : pipeline.getSourceContext().getSocketAddress(), null, null);
+												event.setApplicationProtocol("HTTP");
+												event.setCorrelationId(MimeUtils.getCorrelationId(request.getContent().getHeaders()));
+												HttpMessage messageIn = HTTPUtils.toMessage(request);
+												HttpMessage messageOut = HTTPUtils.toMessage(response);
+												event.setData("# Request\n\n" + messageIn.getMessage() + "\n\n# Response\n\n" + messageOut.getMessage());
+												getRepository().getComplexEventDispatcher().fire(event, VirtualHostArtifact.this);
+											}
 										}
-										return null;
 									}
-								});
-								subscription.demote();
-							}
+									return null;
+								}
+							});
+							subscription.demote();
 						}
 						this.dispatcher = dispatcher;
 					}

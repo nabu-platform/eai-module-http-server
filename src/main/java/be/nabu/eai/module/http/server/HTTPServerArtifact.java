@@ -366,7 +366,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		for (VirtualHostArtifact host : getRepository().getArtifacts(VirtualHostArtifact.class)) {
 			HTTPServerArtifact serverArtifact = host.getConfig().getServer();
 			// bypass equality of objects, go straight for id
-			if (serverArtifact.getId().equals(getId())) {
+			if (serverArtifact != null && serverArtifact.getId().equals(getId())) {
 				try {
 					if (host.isStarted()) {
 						host.stop();
