@@ -1,0 +1,255 @@
+result = xml.objectify(file.read("httpServer.xml"))
+
+tag("HTTP Server")
+
+# don't need to look up the previous value
+# either we already did a merge, and it will be in the previous merge file
+# or we haven't merged yet, but than we also don't have a point of reference for our "previous" lookup
+
+result/enabled = parameter(
+	name: "enabled",
+	category: "Basic",
+	title: null,
+	description: "Whether or not the server should be online",
+	type: "boolean",
+	encrypted: false,
+	optional: false,
+	raw: result/enabled)/current
+
+result/port = parameter(
+	name: "port",
+	category: "Basic",
+	title: null,
+	description: "The port the server will be listening on",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/port)/current
+
+result/offlinePort = parameter(
+	name: "offlinePort",
+	category: null,
+	title: null,
+	description: "The port the server will be listening on when offline",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/offlinePort)/current
+
+result/proxied = parameter(
+	name: "proxied",
+	category: "Proxy",
+	title: null,
+	description: "Whether or not there is a proxy between the user and this server",
+	type: "boolean",
+	encrypted: false,
+	optional: false,
+	raw: result/proxied)/current
+
+result/proxySecure = parameter(
+	name: "proxySecure",
+	category: "Proxy",
+	title: null,
+	description: "If you have a proxy, whether or not it is secure",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	show: "proxied == 'true'",
+	raw: result/proxySecure)/current
+
+result/proxyPort = parameter(
+	name: "proxyPort",
+	category: "Proxy",
+	title: null,
+	description: null,
+	type: "long",
+	encrypted: false,
+	optional: true,
+	show: "proxied == 'true'",
+	raw: result/proxyPort)/current
+	
+result/keystore = parameter(
+	name: "keystore",
+	category: "Security",
+	title: null,
+	description: "In case of SSL, which keystore to use",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: result/keystore)/current
+	
+result/sslServerMode = parameter(
+	name: "sslServerMode",
+	category: "Security",
+	title: null,
+	description: "In case of SSL, we can request or require client certificates",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: result/sslServerMode,
+	enumeration: "NO_CLIENT_CERTIFICATES", "WANT_CLIENT_CERTIFICATES", "NEED_CLIENT_CERTIFICATES")/current
+
+result/maxSizePerRequest = parameter(
+	name: "maxSizePerRequest",
+	category: "Limits",
+	title: null,
+	description: "The maximum size for a request",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/maxSizePerRequest)/current
+
+result/ioSize = parameter(
+	name: "ioSize",
+	category: "Limits",
+	title: null,
+	description: "The amount of threads available for I/O",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: 5,
+	raw: result/ioSize)/current
+
+result/poolSize = parameter(
+	name: "poolSize",
+	category: "Limits",
+	title: null,
+	description: "The amount of threads available for processing",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: 10,
+	raw: result/poolSize)/current
+	
+result/maxTotalConnections = parameter(
+	name: "maxTotalConnections",
+	category: "Limits",
+	title: null,
+	description: "The maximum amount of connections",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/maxTotalConnections)/current
+	
+result/maxConnectionsPerClient = parameter(
+	name: "maxConnectionsPerClient",
+	category: "Limits",
+	title: null,
+	description: "The maximum amount of connections per client",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/maxConnectionsPerClient)/current
+	
+result/idleTimeout = parameter(
+	name: "idleTimeout",
+	category: "Limits",
+	title: null,
+	description: "How long a connection can stay active while idling (ms, 0 for infinite)",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	hide: "proxied == 'true'",
+	default: "5 minutes (300000)",
+	raw: result/idleTimeout)/current
+	
+result/lifetime = parameter(
+	name: "lifetime",
+	category: "Limits",
+	title: null,
+	description: "How long a connection can stay active overall (ms, 0 for infinite)",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	hide: "proxied == 'true'",
+	default: "1 hour (3600000)",
+	raw: result/lifetime)/current
+
+result/maxInitialLineLength = parameter(
+	name: "maxInitialLineLength",
+	category: "Limits",
+	title: null,
+	description: "The maximum length of the initial line (bytes)",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "4096",
+	raw: result/maxInitialLineLength)/current
+	
+result/maxHeaderSize = parameter(
+	name: "maxHeaderSize",
+	category: "Limits",
+	title: null,
+	description: "The maximum length of the total header (bytes)",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "8192",
+	raw: result/maxHeaderSize)/current
+	
+result/maxChunkSize = parameter(
+	name: "maxChunkSize",
+	category: "Limits",
+	title: null,
+	description: "The maximum size of a chunk (bytes)",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "81920",
+	raw: result/maxChunkSize)/current
+
+for (parameter : series("X-Proxy-Path", "X-Remote-Port", "X-Local-Port", "X-Request-Relative-URI", "X-Remote-Is-Local", "X-Remote-Address", "X-Remote-User", "X-Request-Received", "X-Request-URI", "X-Request-Protocol", "X-Request-Security", "X-Authentication-Scheme", "X-Remote-Host", "X-Resource-URI", "X-Request-Type"))
+	current = result/property[@key=/parameter]
+	current = parameter(
+		name: parameter,
+		category: null,
+		title: "Header mapping for: " + parameter,
+		description: null,
+		type: null,
+		encrypted: false,
+		optional: true,
+		raw: current)/current
+
+result/readTimeout = parameter(
+	name: "readTimeout",
+	category: "Limits",
+	title: null,
+	description: null,
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/readTimeout)/current
+	
+result/writeTimeout = parameter(
+	name: "writeTimeout",
+	category: "Limits",
+	title: null,
+	description: null,
+	type: "long",
+	encrypted: false,
+	optional: true,
+	raw: result/writeTimeout)/current
+
+result/requestLimit = parameter(
+	name: "requestLimit",
+	category: "Limits",
+	title: null,
+	description: "The maximum amount of requests that can be queued for processing for a given connection",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "unlimited",
+	raw: result/requestLimit)/current
+	
+result/responseLimit = parameter(
+	name: "responseLimit",
+	category: "Limits",
+	title: null,
+	description: "The maximum amount of responses that can be queued for a given connection",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "unlimited",
+	raw: result/responseLimit)/current
+		
+file.write("httpServer.xml", xml.stringify(result))

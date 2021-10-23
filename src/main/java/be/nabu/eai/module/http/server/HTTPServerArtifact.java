@@ -207,8 +207,16 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 						if (getConfiguration().getIdleTimeout() != null) {
 							server.setMaxIdleTime(getConfiguration().getIdleTimeout());
 						}
+						// if we are proxied, it is up to the proxy to decide
+						else if (getConfig().isProxied()) {
+							server.setMaxIdleTime(0l);
+						}
 						if (getConfiguration().getLifetime() != null) {
 							server.setMaxLifeTime(getConfiguration().getLifetime());
+						}
+						// if we are proxied, it is up to the proxy to decide
+						else if (getConfig().isProxied()) {
+							server.setMaxLifeTime(0l);
 						}
 						// make sure we encode responses as much as possible
 						if (!EAIResourceRepository.isDevelopment()) {

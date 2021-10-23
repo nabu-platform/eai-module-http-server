@@ -1,0 +1,129 @@
+result = xml.objectify(file.read("virtual-host.xml"))
+
+tag("Virtual Host")
+
+result/host = parameter(
+	name: "host",
+	category: "Basic",
+	title: null,
+	description: "The primary DNS name for this host, it will be used to generate links",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: result/host)/current
+
+result/aliases = split("[\s]*,[\s]*", parameter(
+	name: "aliases",
+	category: "Basic",
+	title: null,
+	description: "The secondary DNS names for this host",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: join(", ", result/aliases))/current)
+
+result/server = parameter(
+	name: "server",
+	category: "Basic",
+	title: null,
+	description: "The server this host runs on",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: result/server)/current
+
+result/keyAlias = parameter(
+	name: "keyAlias",
+	category: "Security",
+	title: null,
+	description: "The key alias that it should use, this is only relevant if there is a keystore configured on the server",
+	type: null,
+	encrypted: false,
+	optional: true,
+	raw: result/keyAlias)/current
+
+result/enableHsts = parameter(
+	name: "enableHsts",
+	category: "Security",
+	title: null,
+	description: "Whether you want to enable HTTP Strict Transport Security",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	raw: result/enableHsts)/current
+
+result/hstsPreload = parameter(
+	name: "hstsPreload",
+	category: "Security",
+	title: null,
+	description: "Whether or not to add this site to the preload list (check: https://hstspreload.org/). If you set this boolean it might impact the other hsts settings for minimum compliance.",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	show: "enableHsts == 'true'",
+	raw: result/hstsPreload)/current
+
+result/hstsSubDomains = parameter(
+	name: "hstsSubDomains",
+	category: "Security",
+	title: null,
+	description: "Whether or not to set the subdomains directive on the hsts header",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	show: "enableHsts == 'true'",
+	raw: result/hstsSubDomains)/current
+
+result/hstsMaxAge = parameter(
+	name: "hstsMaxAge",
+	category: "Security",
+	title: null,
+	description: "Set a max age, defaults to at least a year if you set preload to true",
+	type: "long",
+	encrypted: false,
+	optional: true,
+	default: "31536000",
+	show: "enableHsts == 'true'",
+	raw: result/hstsMaxAge)/current
+
+result/captureErrors = parameter(
+	name: "captureErrors",
+	category: "Logging",
+	title: null,
+	description: "By enabling this, all http traffic that results in an error is captured in the events.",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	raw: result/captureErrors)/current
+
+result/captureSuccessful = parameter(
+	name: "captureSuccessful",
+	category: "Logging",
+	title: null,
+	description: "By enabling this, all http traffic that is successful is captured in the events. It is likely better to do this on a service-by-service basis.",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	raw: result/captureSuccessful)/current
+
+result/enableRangeSupport = parameter(
+	name: "enableRangeSupport",
+	category: null,
+	title: null,
+	description: "By setting this to true, you enable range support for your http responses. This is mostly interesting when streaming large files.",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	raw: result/enableRangeSupport)/current
+
+result/enableCompression = parameter(
+	name: "enableCompression",
+	category: null,
+	title: null,
+	description: "By setting this to true, the server will attempt to compress the responses in accordance with client capabilities.",
+	type: "boolean",
+	encrypted: false,
+	optional: true,
+	raw: result/enableCompression)/current
+
+file.write("virtual-host.xml", xml.stringify(result))

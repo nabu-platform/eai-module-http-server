@@ -217,6 +217,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			if (token != null) {
 				event.setAlias(token.getName());
 				event.setRealm(token.getRealm());
+				event.setAuthenticationId(token.getAuthenticationId());
 			}
 			Pipeline pipeline = PipelineUtils.getPipeline();
 			CEPUtils.enrich(event, getClass(), "http-exception", pipeline == null || pipeline.getSourceContext() == null ? null : pipeline.getSourceContext().getSocketAddress(), originalException.getMessage(), originalException);
