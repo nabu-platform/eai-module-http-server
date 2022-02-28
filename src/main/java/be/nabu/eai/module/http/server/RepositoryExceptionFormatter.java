@@ -235,16 +235,20 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			if (header != null) {
 				event.setUserAgent(MimeUtils.getFullHeaderValue(header));
 			}
-			header = MimeUtils.getHeader(ServerHeader.REQUEST_RECEIVED.getName(), request.getContent().getHeaders());
-			if (header != null) {
-				try {
-					event.setStarted(HTTPUtils.parseDate(header.getValue()));
-					event.setStopped(new Date());
-				}
-				catch (ParseException e) {
-					// couldn't parse date...
-				}
-			}
+			// this event is no longer necessary to mark the begin and end of the http message, this is already captured in an event
+			// the timing on this event can be misleading, it takes the parse of the http request (which is before processing even begins)
+			// and it adds a current stop date
+			// the http processor however sends out an event with the start of processing and the end, this means the http processor has a start date after the parse date and a stop date after this date, this overlap makes it hard to correlate them on time
+//			header = MimeUtils.getHeader(ServerHeader.REQUEST_RECEIVED.getName(), request.getContent().getHeaders());
+//			if (header != null) {
+//				try {
+//					event.setStarted(HTTPUtils.parseDate(header.getValue()));
+//					event.setStopped(new Date());
+//				}
+//				catch (ParseException e) {
+//					// couldn't parse date...
+//				}
+//			}
 			// inject the correct values based on the headers
 			event.setSourceIp(HTTPUtils.getRemoteAddress(server.getConfig().isProxied(), request.getContent().getHeaders()));
 			event.setSourceHost(HTTPUtils.getRemoteHost(server.getConfig().isProxied(), request.getContent().getHeaders()));

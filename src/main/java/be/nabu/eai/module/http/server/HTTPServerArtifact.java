@@ -174,6 +174,8 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							}
 						}
 						
+						RepositoryThreadFactory threadFactory = new RepositoryThreadFactory(getRepository());
+						threadFactory.setName(getId());
 						server = new NIOHTTPServer(
 							context,
 							getConfiguration().getSslServerMode(),
@@ -181,7 +183,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							ioPoolSize,
 							processPoolSize,
 							new EventDispatcherImpl(),
-							new RepositoryThreadFactory(getRepository()),
+							threadFactory,
 							getConfig().isProxied(),
 							new HeaderMappingProvider() {
 								@Override
