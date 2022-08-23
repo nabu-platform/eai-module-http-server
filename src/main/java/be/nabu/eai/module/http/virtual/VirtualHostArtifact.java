@@ -8,7 +8,6 @@ import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
@@ -317,7 +316,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 			validateAcme();
 		}
 		if (getConfiguration().getServer() != null) {
-			if (getConfiguration().getHost() != null) {
+			if (getConfiguration().getHost() != null && !getConfig().isDefaultHost()) {
 				getConfiguration().getServer().getServer().route(getConfiguration().getHost(), getDispatcher());
 				if (getConfiguration().getAliases() != null) {
 					for (String host : getConfiguration().getAliases()) {

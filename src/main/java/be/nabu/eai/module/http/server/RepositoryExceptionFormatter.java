@@ -396,7 +396,9 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 				else {
 					response.setMessage(serviceException.getPlainMessage());
 				}
-				response.setDetail(serviceException.getDescription());
+				// this is specific data and may contain variables that should not be exposed
+				// in the future we can provide a further whitelist to expose this
+//				response.setDetail(serviceException.getDescription());
 			}
 			if (EAIResourceRepository.isDevelopment()) {
 				response.setDescription(serviceException.getServiceStack() + "\n\n" + stacktrace(exception));

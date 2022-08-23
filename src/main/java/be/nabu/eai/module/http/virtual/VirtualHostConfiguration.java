@@ -17,7 +17,7 @@ import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.types.api.annotation.Field;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer", "captureErrors", "captureSuccessful" })
+@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer", "captureErrors", "captureSuccessful", "defaultHost" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
@@ -31,6 +31,8 @@ public class VirtualHostConfiguration {
 	private boolean internalServer;
 	// capture requests based on the response
 	private boolean captureErrors, captureSuccessful;
+	// if this is the default host, we will subscribe to all calls instead of only the host
+	private boolean defaultHost;
 	
 	@Comment(title = "The host name, it is not required for the web application to work but some modules might need a valid host (e.g. for redirecting)", description = "Once you have filled in a host name, it is also filtered that only requests to that host (or its aliases) arrive at this virtual host")
 	@EnvironmentSpecific
@@ -191,4 +193,12 @@ public class VirtualHostConfiguration {
 		this.captureSuccessful = captureSuccessful;
 	}
 	
+	@Advanced
+	public boolean isDefaultHost() {
+		return defaultHost;
+	}
+	public void setDefaultHost(boolean defaultHost) {
+		this.defaultHost = defaultHost;
+	}
+
 }
