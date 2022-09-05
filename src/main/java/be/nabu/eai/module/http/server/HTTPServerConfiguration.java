@@ -19,7 +19,7 @@ import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
 public class HTTPServerConfiguration {
 	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
@@ -28,7 +28,7 @@ public class HTTPServerConfiguration {
 	private Long maxSizePerRequest;
 	private Long readTimeout, writeTimeout, idleTimeout, lifetime;
 	private Integer requestLimit, responseLimit;
-	private boolean enabled = true, proxied;
+	private boolean enabled = true, proxied, nabuProxy = true;
 	private Integer maxInitialLineLength;
 	private Integer maxHeaderSize;
 	private Integer maxChunkSize;
@@ -207,6 +207,15 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
+	@Field(group = "proxy", show = "proxied", comment = "If there is a proxy, is it a nabu proxy? This is relevant for header mapping.")
+	public boolean isNabuProxy() {
+		return nabuProxy;
+	}
+	public void setNabuProxy(boolean nabuProxy) {
+		this.nabuProxy = nabuProxy;
+	}
+	
+	@EnvironmentSpecific
 	@Field(group = "proxy", show = "proxied", comment = "The port the proxy is on.")
 	public Integer getProxyPort() {
 		return proxyPort;
@@ -225,7 +234,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	@EnvironmentSpecific
-	@Field(group = "proxy", show = "proxied")
+	@Field(group = "proxy", show = "proxied && !nabuProxy")
 	@XmlJavaTypeAdapter(value = KeyValueMapAdapter.class)
 	public Map<String, String> getHeaderMapping() {
 		if (headerMapping == null) {
@@ -267,5 +276,5 @@ public class HTTPServerConfiguration {
 	public void setOfflinePort(Integer offlinePort) {
 		this.offlinePort = offlinePort;
 	}
-	
+
 }

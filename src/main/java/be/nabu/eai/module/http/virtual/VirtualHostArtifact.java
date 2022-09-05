@@ -161,6 +161,12 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 						if (!EAIResourceRepository.isDevelopment() && getConfig().isEnableCompression()) {
 							dispatcher.subscribe(HTTPResponse.class, HTTPServerUtils.ensureContentEncoding());
 						}
+						
+						// add a heartbeat
+						if (getConfig().isHeartbeat()) {
+							dispatcher.subscribe(HTTPRequest.class, new HeartbeatListener(this));
+						}
+						
 						if (getConfig().isEnableHsts()) {
 							EventSubscription<HTTPResponse, HTTPResponse> subscription = dispatcher.subscribe(HTTPResponse.class, new EventHandler<HTTPResponse, HTTPResponse>() {
 								@Override

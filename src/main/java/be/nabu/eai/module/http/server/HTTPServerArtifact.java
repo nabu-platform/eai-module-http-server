@@ -6,6 +6,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.net.ssl.KeyManager;
@@ -32,6 +33,7 @@ import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.HeaderMappingProvider;
 import be.nabu.libs.http.api.server.HTTPServer;
+import be.nabu.libs.http.core.ServerHeader;
 import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.libs.http.server.nio.HTTPPipelineFactoryImpl;
 import be.nabu.libs.http.server.nio.NIOHTTPServer;
@@ -188,7 +190,23 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							new HeaderMappingProvider() {
 								@Override
 								public Map<String, String> getMappings() {
-									return getConfig().isProxied() ? getConfig().getHeaderMapping() : null;
+									if (getConfig().isProxied()) {
+										Map<String, String> headerMapping = getConfig().getHeaderMapping();
+										if (headerMapping == null) {
+											headerMapping = new HashMap<String, String>();
+										}
+										// if we are behind a nabu proxy, add the default mappings
+										if (getConfig().isNabuProxy()) {
+											for (ServerHeader header : ServerHeader.values()) {
+												// you did not fill in something manually
+												if (headerMapping.get(header.getName()) == null) {
+													headerMapping.put(header.getName(), header.getName());
+												}
+											}
+										}
+										return headerMapping;
+									}
+									return null;
 								}
 							},
 							new EventTarget() {
