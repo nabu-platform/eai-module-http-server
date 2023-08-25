@@ -384,6 +384,27 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		
 		String whitelistedCode = serviceException != null ? getWhitelistedCode(serviceException.getCode()) : null;
+		
+		String responseDescription = null;
+		if (EAIResourceRepository.isDevelopment()) {
+			if (exception.getDescription() != null) {
+				responseDescription = exception.getDescription();
+			}
+			else if (serviceException != null) {
+				responseDescription = serviceException.getDescription() == null ? serviceException.getMessage() : serviceException.getDescription();
+			}
+			if (serviceException != null) {
+				responseDescription += "\n\n " + serviceException.getServiceStack();
+			}
+			if (responseDescription == null) {
+				responseDescription = "";
+			}
+			else {
+				responseDescription += "\n\n";
+			}
+			responseDescription += stacktrace(exception);
+		}
+		
 		// we have a service exception that can be reported
 		if (whitelistedCode != null) {
 			response.setCode(whitelistedCode);
@@ -400,9 +421,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 				// in the future we can provide a further whitelist to expose this
 //				response.setDetail(serviceException.getDescription());
 			}
-			if (EAIResourceRepository.isDevelopment()) {
-				response.setDescription(serviceException.getServiceStack() + "\n\n" + stacktrace(exception));
-			}
+			response.setDescription(responseDescription);
 		}
 		else {
 			response.setCode("HTTP-" + httpCode);
@@ -412,9 +431,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			else {
 				response.setMessage(HTTPCodes.getMessage(httpCode));
 			}
-			if (EAIResourceRepository.isDevelopment()) {
-				response.setDescription(stacktrace(exception));
-			}
+			response.setDescription(responseDescription);
 		}
 		
 		logger.error("HTTP Exception " + exception.getCode(), exception);
