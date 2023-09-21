@@ -384,6 +384,9 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		
 		String whitelistedCode = serviceException != null ? getWhitelistedCode(serviceException.getCode()) : null;
+		if (whitelistedCode == null && serviceException != null && serviceException.isWhitelisted()) {
+			whitelistedCode = serviceException.getCode() == null ? "HTTP-500" : serviceException.getCode();
+		}
 		
 		String responseDescription = null;
 		if (EAIResourceRepository.isDevelopment()) {
