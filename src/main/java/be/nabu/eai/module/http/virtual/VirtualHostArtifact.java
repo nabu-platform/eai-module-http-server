@@ -115,6 +115,18 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 		return null;
 	}
 	
+	public HTTPServerArtifact getServer() {
+		HTTPServerArtifact server = getConfig().getServer();
+		int amount = 0;
+		while (server != null && server.getConfig().getRedirectTo() != null && ++amount < 10) {
+			server = server.getConfig().getRedirectTo();
+		}
+		if (amount == 10) {
+			logger.error("Too many redirects to determine the correct server for host: " + getId());
+		}
+		return server;
+	}
+	
 	public EventDispatcher getDispatcher() {
 		if (dispatcher == null) {
 			synchronized(this) {

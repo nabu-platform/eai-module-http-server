@@ -19,7 +19,7 @@ import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "errorTypeUri", "errorInstanceUri", "headerMapping" })
+@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping" })
 public class HTTPServerConfiguration {
 	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
@@ -35,6 +35,7 @@ public class HTTPServerConfiguration {
 	private Integer proxyPort;
 	private boolean proxySecure;
 	private URI errorTypeUri, errorInstanceUri;
+	private HTTPServerArtifact redirectTo;
 	
 	private Map<String, String> headerMapping;
 	
@@ -231,6 +232,15 @@ public class HTTPServerConfiguration {
 	}
 	public void setProxySecure(boolean proxySecure) {
 		this.proxySecure = proxySecure;
+	}
+	
+	
+	@Field(group = "Advanced", show = "!proxied", comment = "You can redirect all traffic to another server (e.g. 80 to 443). The virtual hosts that are on this server will also be added there rather than here.")
+	public HTTPServerArtifact getRedirectTo() {
+		return redirectTo;
+	}
+	public void setRedirectTo(HTTPServerArtifact redirectTo) {
+		this.redirectTo = redirectTo;
 	}
 	
 	@EnvironmentSpecific

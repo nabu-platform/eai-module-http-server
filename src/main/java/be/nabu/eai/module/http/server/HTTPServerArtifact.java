@@ -1,6 +1,7 @@
 package be.nabu.eai.module.http.server;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -28,11 +29,18 @@ import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
 import be.nabu.libs.artifacts.api.TwoPhaseOfflineableArtifact;
 import be.nabu.libs.artifacts.api.TwoPhaseStartableArtifact;
+import be.nabu.libs.events.api.EventDispatcher;
+import be.nabu.libs.events.api.EventHandler;
 import be.nabu.libs.events.api.EventTarget;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
+import be.nabu.libs.http.HTTPCodes;
+import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.HeaderMappingProvider;
 import be.nabu.libs.http.api.server.HTTPServer;
+import be.nabu.libs.http.core.DefaultHTTPRequest;
+import be.nabu.libs.http.core.DefaultHTTPResponse;
+import be.nabu.libs.http.core.HTTPUtils;
 import be.nabu.libs.http.core.ServerHeader;
 import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.libs.http.server.nio.HTTPPipelineFactoryImpl;
@@ -44,6 +52,8 @@ import be.nabu.libs.nio.api.NIOServer;
 import be.nabu.libs.nio.impl.MaxTotalConnectionsAcceptor;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.cep.impl.ComplexEventImpl;
+import be.nabu.utils.mime.impl.MimeHeader;
+import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
 /*
@@ -290,6 +300,31 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 							messageDataProvider = new RoutingMessageDataProvider();
 						}
 						server.setMessageDataProvider(messageDataProvider);
+						
+						final HTTPServerArtifact redirectTo = getConfig().getRedirectTo();
+						if (redirectTo != null) {
+							EventDispatcherImpl redirectDispatcher = new EventDispatcherImpl();
+							redirectDispatcher.subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPRequest event) {
+									try {
+										URI uri = HTTPUtils.getURI(event, isSecure());
+										int port = redirectTo.getConfig().getPort() == null ? -1 : redirectTo.getConfig().getPort();
+										URI newUri = new URI(redirectTo.isSecure() ? "https" : "http", null, uri.getHost(), port, uri.getPath(), uri.getQuery(), uri.getFragment());
+										return new DefaultHTTPResponse(307, HTTPCodes.getMessage(307), new PlainMimeEmptyPart(null, 
+											new MimeHeader("Content-Length", "0"),
+											new MimeHeader("Location", newUri.toString()))
+										);
+									}
+									catch (Exception e) {
+										logger.error("Can not redirect user", e);
+										return null;
+									}
+								}
+							});
+							server.route(null, redirectDispatcher);
+						}
+						
 					}
 					catch (KeyManagementException e) {
 						throw new RuntimeException(e);
