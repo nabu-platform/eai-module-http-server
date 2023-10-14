@@ -42,7 +42,7 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 				public HTTPResponse handle(HTTPRequest request) {
 					try {
 						boolean fromSecure = getConfig().getFromHost().getConfig().getKeyAlias() != null && getConfig().getFromHost().getConfig().getServer() != null
-							&& getConfig().getFromHost().getConfig().getServer().getConfig().getKeystore() != null;
+							&& getConfig().getFromHost().getConfig().getServer().isSecuring();
 						URI uri = HTTPUtils.getURI(request, fromSecure);
 						if (getConfig().getFromPath() == null || uri.getPath().matches(getConfig().getFromPath())) {
 							if (getConfig().getToPath() != null) {
@@ -50,7 +50,7 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 							}
 							VirtualHostArtifact toHost = getConfig().getToHost() == null ? getConfig().getFromHost() : getConfig().getToHost();
 							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
-								&& toHost.getConfig().getServer().getConfig().getKeystore() != null;
+								&& toHost.getConfig().getServer().isSecuring();
 							if (toHost.getConfig().getHost() != null && (!toHost.getConfig().getHost().equals(uri.getHost()) || fromSecure != toSecure)) {
 								String authority = null;
 								if (uri.getHost().equals(toHost.getConfig().getHost())) {

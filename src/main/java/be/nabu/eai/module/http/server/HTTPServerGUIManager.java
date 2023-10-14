@@ -58,7 +58,7 @@ public class HTTPServerGUIManager extends BaseJAXBGUIManager<HTTPServerConfigura
 			return "unlimited";
 		}
 		else if ("port".equals(property)) {
-			return instance.getConfig().getKeystore() == null ? "80" : "443";
+			return instance.isSecuring() ? "443" : "80";
 		}
 		// configured in NIOServerImpl
 		else if ("idleTimeout".equals(property)) {

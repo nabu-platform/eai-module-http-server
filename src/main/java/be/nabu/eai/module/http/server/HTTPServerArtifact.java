@@ -86,6 +86,12 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	public boolean isSecure() {
 		return this.getConfig().isProxied() ? this.getConfig().isProxySecure() : this.getConfig().getKeystore() != null;
 	}
+	
+	// similar to is secure but it checks if THIS server is doing the terminating
+	// this can be relevant for example to see if we want ACME
+	public boolean isSecuring() {
+		return this.getConfig().getKeystore() != null;
+	}
 
 	@Override
 	public void start() throws IOException {
@@ -337,7 +343,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	@Override
 	public Integer getTunnelPort() {
 		if (getConfig().getPort() == null) {
-			return getConfig().getKeystore() != null ? 443 : 80;
+			return isSecuring() ? 443 : 80;
 		}
 		else {
 			return getConfig().getPort();
