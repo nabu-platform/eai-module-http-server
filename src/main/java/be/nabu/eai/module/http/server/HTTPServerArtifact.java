@@ -3,16 +3,23 @@ package be.nabu.eai.module.http.server;
 import java.io.IOException;
 import java.net.URI;
 import java.security.KeyManagementException;
+import java.security.KeyPair;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
+import javax.security.auth.x500.X500Principal;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +61,13 @@ import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.cep.impl.ComplexEventImpl;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
+import be.nabu.utils.security.BCSecurityUtils;
+import be.nabu.utils.security.KeyPairType;
 import be.nabu.utils.security.KeyStoreHandler;
 import be.nabu.utils.security.SSLContextType;
+import be.nabu.utils.security.SecurityUtils;
+import be.nabu.utils.security.SignatureType;
+import be.nabu.utils.security.api.ManagedKeyStore;
 /*
  * two offline modes supported: 
  * - round robin: we switch to another port an keep entire application alive (this assumes with load balancer ignoring "down" server)
@@ -153,6 +165,34 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		return getServer(offline);
 	}
 	
+	public String getDefaultAlias() {
+		String defaultAlias = getConfig().getDefaultAlias();
+		if (defaultAlias == null) {
+			defaultAlias = getId();
+		}
+		return defaultAlias;
+	}
+	
+	private void initializeKeystore() {
+		// if we have a dynamic keystore, generate a key if not available yet
+		if (getConfig().getKeystore() != null && getConfig().getKeystore().isDynamic()) {
+			String defaultAlias = getDefaultAlias();
+			try {
+				ManagedKeyStore keyStore = getConfig().getKeystore().getKeyStore();
+				PrivateKey privateKey = keyStore.getPrivateKey(defaultAlias);
+				if (privateKey == null) {
+					KeyPair ownerKeyPair = SecurityUtils.generateKeyPair(KeyPairType.RSA, 4096);
+					X500Principal principal = SecurityUtils.createX500Principal(getId(), "generated", "generated", "generated", "generated","generated");
+					X509Certificate selfSignedCert = BCSecurityUtils.generateSelfSignedCertificate(ownerKeyPair, new Date(new Date().getTime() + 1000l*60*60*24*365*100), principal, principal, SignatureType.SHA256WITHRSA);
+					keyStore.set(defaultAlias, ownerKeyPair.getPrivate(), new X509Certificate[] { selfSignedCert }, UUID.randomUUID().toString().replace("-", ""));
+				}
+			}
+			catch (Exception e) {
+				logger.error("Could not initialize keystore for server " + getId(), e);
+			}
+		}
+	}
+	
 	private HTTPServer getServer(boolean offline) {
 		Integer port = offline && getConfig().getOfflinePort() != null ? getConfig().getOfflinePort() : getConfig().getPort();
 		// if the port is null, we don't have an offline port (or it is not in offline mode), so we are definitely online but don't have a port
@@ -176,6 +216,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 			synchronized(this) {
 				if (server == null) {
 					try {
+						initializeKeystore();
 						SSLContext context = null;
 						if (getConfig().getKeystore() != null) {
 							context = generateSecurityContext();
@@ -348,11 +389,13 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	}
 
 	private SSLContext generateSecurityContext() throws IOException, KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException {
-		KeyStoreHandler keyStoreHandler = new KeyStoreHandler(getConfiguration().getKeystore().getKeyStore().getKeyStore());
+		// we get an unsecured keystore, because if the private keys have passwords, the key managers can not access them (at least if you have multiple keys with multiple passwords and don't feel like writing a custom wrapper implementation)
+		KeyStore keyStore = getConfiguration().getKeystore().getKeyStore().getUnsecuredKeyStore();
+		KeyStoreHandler keyStoreHandler = new KeyStoreHandler(keyStore);
 		KeyManager[] keyManagers = keyStoreHandler.getKeyManagers();
 		for (int i = 0; i < keyManagers.length; i++) {
 			if (keyManagers[i] instanceof X509KeyManager) {
-				keyManagers[i] = new ArtifactAwareKeyManager((X509KeyManager) keyManagers[i], getRepository(), this);
+				keyManagers[i] = new ArtifactAwareKeyManager((X509KeyManager) keyManagers[i], getRepository(), this, keyStore);
 			}
 		}
 		SSLContext context = SSLContext.getInstance(SSLContextType.TLS.toString());

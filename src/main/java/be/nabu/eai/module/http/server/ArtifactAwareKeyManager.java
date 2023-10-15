@@ -2,10 +2,12 @@ package be.nabu.eai.module.http.server;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.security.KeyStore;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -47,11 +49,44 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private X509KeyManager parent;
 	private HTTPServerArtifact server;
+	private KeyStore keyStore;
 	
-	public ArtifactAwareKeyManager(X509KeyManager parent, Repository repository, HTTPServerArtifact server) {
+	public ArtifactAwareKeyManager(X509KeyManager parent, Repository repository, HTTPServerArtifact server, KeyStore keyStore) {
 		this.parent = parent;
 		this.repository = repository;
 		this.server = server;
+		// we want to be able to probe the keystore to make more dynamic choices
+		this.keyStore = keyStore;
+	}
+	
+	private String getAlias(VirtualHostArtifact artifact) {
+		String alias = artifact.getConfig().getKeyAlias();
+		if (alias == null) {
+			alias = artifact.getId();
+		}
+		try {
+			List<String> potentials = Arrays.asList("acme2-" + alias, "acme-" + alias, alias);
+			for (String potential : potentials) {
+				if (keyStore.containsAlias(potential)) {
+					return potential;
+				}
+			}
+		}
+		catch (Exception e) {
+			logger.error("Problems resolving aliases from the keystore", e);
+		}
+		try {
+			if (keyStore.containsAlias(alias)) {
+				return alias;
+			}
+			else if (keyStore.containsAlias(server.getDefaultAlias())) {
+				return server.getDefaultAlias();
+			}
+		}
+		catch (Exception e) {
+			logger.error("Could not determine alias", e);
+		}
+		return null;
 	}
 	
 	/**
@@ -81,13 +116,7 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 		}
 		// just one, return that
 		else if (virtualHosts.size() == 1) {
-			try {
-				return virtualHosts.get(0).getConfiguration().getKeyAlias();
-			}
-			catch (IOException e) {
-				logger.error("Could not get alias", e);
-				return null;
-			}
+			return getAlias(virtualHosts.get(0));
 		}
 		// multiple, choose on the basis of the SNI host name (if any)
 		else {
@@ -123,11 +152,7 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 						for (String host : hosts) {
 							SNIHostName sniHostName = new SNIHostName(host);
 							if (sniHostName.equals(hostName)) {
-								if (artifact.getConfiguration().getKeyAlias() == null) {
-									logger.error("No key alias set on virtual host: " + artifact.getId());
-									return null;
-								}
-								return artifact.getConfiguration().getKeyAlias();
+								return getAlias(artifact);
 							}
 						}
 					}

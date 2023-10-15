@@ -19,7 +19,7 @@ import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping" })
+@XmlType(propOrder = { "enabled", "keystore", "defaultAlias", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping" })
 public class HTTPServerConfiguration {
 	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
@@ -36,6 +36,7 @@ public class HTTPServerConfiguration {
 	private boolean proxySecure;
 	private URI errorTypeUri, errorInstanceUri;
 	private HTTPServerArtifact redirectTo;
+	private String defaultAlias;
 	
 	private Map<String, String> headerMapping;
 	
@@ -56,6 +57,14 @@ public class HTTPServerConfiguration {
 	}
 	public void setKeystore(KeyStoreArtifact keystore) {
 		this.keystore = keystore;
+	}
+	
+	@Field(group = "security", comment = "Set a default alias to use when the host does not explicitly set one")
+	public String getDefaultAlias() {
+		return defaultAlias;
+	}
+	public void setDefaultAlias(String defaultAlias) {
+		this.defaultAlias = defaultAlias;
 	}
 	
 	@Field(group = "limits", comment = "The amount of threads that the server has to process incoming requests, the default can be overwritten using the system property 'be.nabu.eai.http.processPoolSize'")
@@ -235,6 +244,7 @@ public class HTTPServerConfiguration {
 	}
 	
 	
+	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
 	@Field(group = "Advanced", show = "!proxied", comment = "You can redirect all traffic to another server (e.g. 80 to 443). The virtual hosts that are on this server will also be added there rather than here.")
 	public HTTPServerArtifact getRedirectTo() {
 		return redirectTo;
