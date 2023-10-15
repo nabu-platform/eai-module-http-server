@@ -433,7 +433,7 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 	// if we play around with the underlying http server (e.g. for online/offline cycles) we should restart the virtual hosts so they can re-register
 	private void restartHosts() {
 		for (VirtualHostArtifact host : getRepository().getArtifacts(VirtualHostArtifact.class)) {
-			HTTPServerArtifact serverArtifact = host.getConfig().getServer();
+			HTTPServerArtifact serverArtifact = host.getServer();
 			// bypass equality of objects, go straight for id
 			if (serverArtifact != null && serverArtifact.getId().equals(getId())) {
 				try {

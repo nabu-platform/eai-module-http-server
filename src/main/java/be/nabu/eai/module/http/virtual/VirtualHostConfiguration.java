@@ -17,11 +17,11 @@ import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.types.api.annotation.Field;
 
 @XmlRootElement(name = "virtualHost")
-@XmlType(propOrder = { "host", "aliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer", "captureErrors", "captureSuccessful", "defaultHost", "heartbeat" })
+@XmlType(propOrder = { "host", "aliases", "redirectAliases", "server", "keyAlias", "requestRewriter", "requestSubscriber", "responseRewriter", "useAcme", "enableHsts", "hstsMaxAge", "hstsPreload", "hstsSubDomains", "enableRangeSupport", "enableCompression", "internalServer", "captureErrors", "captureSuccessful", "defaultHost", "heartbeat" })
 public class VirtualHostConfiguration {
 	private String host;
 	private String keyAlias;
-	private List<String> aliases;
+	private List<String> aliases, redirectAliases;
 	private HTTPServerArtifact server;
 	private DefinedService requestSubscriber, responseRewriter, requestRewriter;
 	private boolean useAcme;
@@ -51,6 +51,14 @@ public class VirtualHostConfiguration {
 	}
 	public void setAliases(List<String> aliases) {
 		this.aliases = aliases;
+	}
+	
+	@Comment(title = "Redirect aliases for the host name, these will be redirected to a valid host or alias")
+	public List<String> getRedirectAliases() {
+		return redirectAliases;
+	}
+	public void setRedirectAliases(List<String> redirectAliases) {
+		this.redirectAliases = redirectAliases;
 	}
 	
 	@Field(group = "security", comment = "The alias of the private key for the SSL connection in the keystore configured in the server")

@@ -41,16 +41,16 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 				@Override
 				public HTTPResponse handle(HTTPRequest request) {
 					try {
-						boolean fromSecure = getConfig().getFromHost().getConfig().getKeyAlias() != null && getConfig().getFromHost().getConfig().getServer() != null
-							&& getConfig().getFromHost().getConfig().getServer().isSecuring();
+						boolean fromSecure = getConfig().getFromHost().getConfig().getKeyAlias() != null && getConfig().getFromHost().getServer() != null
+							&& getConfig().getFromHost().getServer().isSecuring();
 						URI uri = HTTPUtils.getURI(request, fromSecure);
 						if (getConfig().getFromPath() == null || uri.getPath().matches(getConfig().getFromPath())) {
 							if (getConfig().getToPath() != null) {
 								uri = uri.resolve(getConfig().getToPath());
 							}
 							VirtualHostArtifact toHost = getConfig().getToHost() == null ? getConfig().getFromHost() : getConfig().getToHost();
-							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getConfig().getServer() != null
-								&& toHost.getConfig().getServer().isSecuring();
+							boolean toSecure = toHost.getConfig().getKeyAlias() != null && toHost.getServer() != null
+								&& toHost.getServer().isSecuring();
 							if (toHost.getConfig().getHost() != null && (!toHost.getConfig().getHost().equals(uri.getHost()) || fromSecure != toSecure)) {
 								String authority = null;
 								if (uri.getHost().equals(toHost.getConfig().getHost())) {
@@ -78,8 +78,8 @@ public class RedirectArtifact extends JAXBArtifact<RedirectConfiguration> implem
 								if (authority == null) {
 									throw new HTTPException(500, "No server host configured for redirect in: " + getConfig().getToHost().getId());
 								}
-								if (getConfig().getToHost().getConfig().getServer() != null) {
-									Integer port = getConfig().getToHost().getConfig().getServer().getConfig().getPort();
+								if (getConfig().getToHost().getServer() != null) {
+									Integer port = getConfig().getToHost().getServer().getConfig().getPort();
 									if (port != null) {
 										authority += ":" + port;
 									}

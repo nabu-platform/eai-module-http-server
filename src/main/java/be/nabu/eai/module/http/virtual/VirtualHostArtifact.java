@@ -81,7 +81,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	}
 	
 	public boolean isProxied() {
-		HTTPServerArtifact server = getConfig().getServer();
+		HTTPServerArtifact server = getServer();
 		if (server != null) {
 			return server.getConfig().isProxied();
 		}
@@ -93,7 +93,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	}
 	
 	public boolean isSecure() {
-		HTTPServerArtifact server = getConfig().getServer();
+		HTTPServerArtifact server = getServer();
 		if (server != null) {
 			return server.isSecure();
 		}
@@ -105,7 +105,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	}
 	
 	public Integer getPort() {
-		HTTPServerArtifact server = getConfig().getServer();
+		HTTPServerArtifact server = getServer();
 		if (server != null) {
 			return server.getConfig().isProxied() ? server.getConfig().getProxyPort() : server.getConfig().getPort();
 		}
@@ -133,6 +133,51 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 				if (dispatcher == null) {
 					EventDispatcher dispatcher = new EventDispatcherImpl();
 					try {
+						// make sure we redirect the user if he is on a redirect alias
+						if (getConfig().getRedirectAliases() != null && !getConfig().getRedirectAliases().isEmpty()) {
+							dispatcher.subscribe(HTTPRequest.class, new EventHandler<HTTPRequest, HTTPResponse>() {
+								@Override
+								public HTTPResponse handle(HTTPRequest event) {
+									Header hostHeader = MimeUtils.getHeader("Host", event.getContent().getHeaders());
+									if (hostHeader != null) {
+										// make sure we remove any port reference
+										String host = hostHeader.getValue().replaceAll(":[0-9]+$", "");
+										String targetHost = null;
+										// if it is a redirect host, we need to redirect...
+										if (getConfig().getRedirectAliases().contains(host)) {
+											targetHost = getConfig().getHost();
+											// we first check if there is an actual alias that matches the current host
+											// for instance if we redirect "www.example.com" to "example.com" or the reverse
+											if (getConfig().getAliases() != null) {
+												for (String alias : getConfig().getAliases()) {
+													if (alias.contains(host) || host.contains(alias)) {
+														targetHost = alias;
+														break;
+													}
+												}
+											}
+										}
+										// redirect!
+										if (targetHost != null) {
+											try {
+												URI uri = HTTPUtils.getURI(event, getConfig().getServer().isSecure());
+												URI redirect = new URI(uri.getScheme(), uri.getUserInfo(), targetHost, uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
+												DefaultHTTPResponse response = new DefaultHTTPResponse(307, HTTPCodes.getMessage(307), new PlainMimeEmptyPart(null, 
+													new MimeHeader("Content-Length", "0"),
+													new MimeHeader("Location", redirect.toString())
+												));
+												response.setRequest(event);
+												return response;
+											}
+											catch (Exception e) {
+												throw new HTTPException(500, "Could not redirect user", e);
+											}
+										}
+									}
+									return null;
+								}
+							});
+						}
 						// allow request rewriting
 						if (getConfiguration().getRequestRewriter() != null) {
 							final RequestRewriter requestRewriter = POJOUtils.newProxy(RequestRewriter.class, getRepository(), SystemPrincipal.ROOT, getConfiguration().getRequestRewriter());
@@ -185,7 +230,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 								public HTTPResponse handle(HTTPResponse event) {
 									ModifiablePart content = event.getContent();
 									// only inject the header if the server is secure
-									if (content != null && getConfig().getServer() != null && getConfig().getServer().isSecure()) {
+									if (content != null && getServer() != null && getServer().isSecure()) {
 										Header header = MimeUtils.getHeader("Strict-Transport-Security", content.getHeaders());
 										if (header == null) {
 											long age = getConfig().getHstsMaxAge() == null ? 31536000 : getConfig().getHstsMaxAge();
@@ -273,17 +318,17 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 	
 	@Override
 	public void stop() throws IOException {
-		if (started && getConfiguration().getServer() != null) {
+		if (started && getServer() != null) {
 			if (getConfiguration().getHost() != null) {
-				getConfiguration().getServer().getServer().unroute(getConfiguration().getHost());
+				getServer().getServer().unroute(getConfiguration().getHost());
 				if (getConfiguration().getAliases() != null) {
 					for (String host : getConfiguration().getAliases()) {
-						getConfiguration().getServer().getServer().unroute(host);
+						getServer().getServer().unroute(host);
 					}
 				}
 			}
 			else {
-				getConfiguration().getServer().getServer().unroute(null);
+				getServer().getServer().unroute(null);
 			}
 		}
 		if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
@@ -333,17 +378,22 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 			getConfig().setKeyAlias("acme-" + getConfig().getHost());
 			validateAcme();
 		}
-		if (getConfiguration().getServer() != null) {
+		if (getServer() != null) {
 			if (getConfiguration().getHost() != null && !getConfig().isDefaultHost()) {
-				getConfiguration().getServer().getServer().route(getConfiguration().getHost(), getDispatcher());
+				getServer().getServer().route(getConfiguration().getHost(), getDispatcher());
 				if (getConfiguration().getAliases() != null) {
 					for (String host : getConfiguration().getAliases()) {
-						getConfiguration().getServer().getServer().route(host, getDispatcher());
+						getServer().getServer().route(host, getDispatcher());
+					}
+				}
+				if (getConfiguration().getRedirectAliases() != null) {
+					for (String host : getConfiguration().getRedirectAliases()) {
+						getServer().getServer().route(host, getDispatcher());
 					}
 				}
 			}
 			else {
-				getConfiguration().getServer().getServer().route(null, getDispatcher());
+				getServer().getServer().route(null, getDispatcher());
 			}
 		}
 		if (getRepository().getServiceRunner() instanceof Server && getConfig().isInternalServer()) {
@@ -353,6 +403,11 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 					server.route(getConfiguration().getHost(), getDispatcher());
 					if (getConfiguration().getAliases() != null) {
 						for (String host : getConfiguration().getAliases()) {
+							server.route(host, getDispatcher());
+						}
+					}
+					if (getConfiguration().getRedirectAliases() != null) {
+						for (String host : getConfiguration().getRedirectAliases()) {
 							server.route(host, getDispatcher());
 						}
 					}
@@ -385,6 +440,7 @@ public class VirtualHostArtifact extends JAXBArtifact<VirtualHostConfiguration> 
 		started = true;
 	}
 	
+	@Deprecated
 	public void validateAcme() {
 		try {
 			KeyStoreArtifact keystore = getConfig().getServer().getConfig().getKeystore();

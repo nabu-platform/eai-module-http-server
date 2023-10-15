@@ -82,7 +82,7 @@ public class HeartbeatListener implements EventHandler<HTTPRequest, HTTPResponse
 				Heartbeat heartbeat = new Heartbeat();
 				heartbeat.setDate(new Date());
 				// if we are proxied, include load information IF the request does not include a source IP, so it is coming from the proxy itself, not the outside world
-				if (host.getConfig().getServer().getConfig().isProxied()) {
+				if (host.getServer().getConfig().isProxied()) {
 					Header remoteAddress = MimeUtils.getHeader(ServerHeader.REMOTE_ADDRESS.getName(), request.getContent().getHeaders());
 					if (remoteAddress == null) {
 						heartbeat.setAbsoluteLoad(operatingSystemMXBean.getSystemLoadAverage());

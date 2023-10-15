@@ -66,7 +66,7 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 		Iterator<VirtualHostArtifact> iterator = virtualHosts.iterator();
 		while (iterator.hasNext()) {
 			try {
-				if (!server.equals(iterator.next().getConfiguration().getServer())) {
+				if (!server.equals(iterator.next().getServer())) {
 					iterator.remove();
 				}
 			}
@@ -116,6 +116,9 @@ public class ArtifactAwareKeyManager extends X509ExtendedKeyManager {
 						}
 						if (artifact.getConfiguration().getAliases() != null) {
 							hosts.addAll(artifact.getConfiguration().getAliases());
+						}
+						if (artifact.getConfiguration().getRedirectAliases() != null) {
+							hosts.addAll(artifact.getConfiguration().getRedirectAliases());
 						}
 						for (String host : hosts) {
 							SNIHostName sniHostName = new SNIHostName(host);
