@@ -29,6 +29,7 @@ import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.Notification;
 import be.nabu.libs.authentication.api.Device;
 import be.nabu.libs.authentication.api.Token;
+import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.http.HTTPCodes;
 import be.nabu.libs.http.HTTPException;
 import be.nabu.libs.http.api.HTTPRequest;
@@ -44,15 +45,23 @@ import be.nabu.libs.nio.api.Pipeline;
 import be.nabu.libs.property.api.Value;
 import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.services.api.ServiceException;
+import be.nabu.libs.types.ComplexContentWrapperFactory;
+import be.nabu.libs.types.SimpleTypeWrapperFactory;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.ComplexType;
+import be.nabu.libs.types.api.DefinedSimpleType;
 import be.nabu.libs.types.api.Element;
+import be.nabu.libs.types.api.Marshallable;
+import be.nabu.libs.types.base.TypeBaseUtils;
 import be.nabu.libs.types.binding.api.MarshallableBinding;
 import be.nabu.libs.types.binding.json.JSONBinding;
 import be.nabu.libs.types.binding.xml.XMLBinding;
 import be.nabu.libs.types.java.BeanInstance;
 import be.nabu.libs.types.java.BeanResolver;
+import be.nabu.libs.types.structure.Structure;
+import be.nabu.libs.types.structure.StructureInstance;
+import be.nabu.libs.types.structure.StructureInstanceDowncastReference;
 import be.nabu.libs.validator.api.ValidationMessage.Severity;
 import be.nabu.utils.cep.impl.CEPUtils;
 import be.nabu.utils.cep.impl.HTTPComplexEventImpl;
@@ -190,6 +199,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		return null;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public HTTPResponse format(HTTPRequest request, Exception originalException) {
 		Token token = getToken(originalException);
@@ -457,6 +467,40 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		MarshallableBinding binding = null;
 		String contentType = "text/html";
 		ComplexType resolved = (ComplexType) BeanResolver.getInstance().resolve(StructuredResponse.class);
+		ComplexContent responseContent = new BeanInstance<StructuredResponse>(response);
+		
+		if (serviceException != null && serviceException.getData() != null && whitelistedCode != null) {
+			DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(serviceException.getData().getClass());
+			// we have simple content
+			if (wrap != null) {
+				if (wrap instanceof Marshallable) {
+					((Marshallable) wrap).marshal(serviceException.getData());
+				}
+				else {
+					response.setDetail(ConverterFactory.getInstance().getConverter().convert(serviceException.getData(), String.class));
+				}
+			}
+			else {
+				ComplexContent data = (!(serviceException.getData() instanceof ComplexContent)) ? ComplexContentWrapperFactory.getInstance().getWrapper().wrap(serviceException.getData()) : (ComplexContent) serviceException.getData();
+				if (data != null) {
+					Structure responseExtension = new Structure();
+					responseExtension.setName("exception");
+					responseExtension.setSuperType(resolved);
+					for (Element<?> child : TypeUtils.getAllChildren(data.getType())) {
+						if (resolved.get(child.getName()) == null) {
+							responseExtension.add(TypeBaseUtils.clone(child, responseExtension));
+						}
+					}
+					ComplexContent newInstance = StructureInstanceDowncastReference.downcast(responseContent, responseExtension);
+					for (Element<?> child : TypeUtils.getAllChildren(data.getType())) {
+						newInstance.set(child.getName(), data.get(child.getName()));
+					}
+					resolved = responseExtension;
+					responseContent = newInstance;
+				}
+			}
+		}
+		
 		// a default browser will likely send both a request for HTML and XML but should (hopefully) be in the correct order
 		// note that they do generally send a q but that requires further processing
 		int htmlIndex = requestedTypes.indexOf("text/html");
@@ -476,7 +520,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		try {
-			binding.marshal(output, new BeanInstance<StructuredResponse>(response));
+			binding.marshal(output, responseContent);
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);
@@ -574,7 +618,6 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			this.code = code;
 		}
 		
-		@NotNull
 		public String getMessage() {
 			return message;
 		}
