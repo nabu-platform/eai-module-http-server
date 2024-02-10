@@ -11,15 +11,17 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import be.nabu.eai.api.Advanced;
 import be.nabu.eai.api.Comment;
 import be.nabu.eai.api.EnvironmentSpecific;
+import be.nabu.eai.api.InterfaceFilter;
 import be.nabu.eai.module.keystore.KeyStoreArtifact;
 import be.nabu.eai.repository.jaxb.ArtifactXMLAdapter;
 import be.nabu.eai.repository.util.KeyValueMapAdapter;
 import be.nabu.libs.http.core.ServerHeader;
+import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "defaultAlias", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping" })
+@XmlType(propOrder = { "enabled", "keystore", "defaultAlias", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping", "customExceptionFormatter" })
 public class HTTPServerConfiguration {
 	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
@@ -37,6 +39,7 @@ public class HTTPServerConfiguration {
 	private URI errorTypeUri, errorInstanceUri;
 	private HTTPServerArtifact redirectTo;
 	private String defaultAlias;
+	private DefinedService customExceptionFormatter;
 	
 	private Map<String, String> headerMapping;
 	
@@ -295,6 +298,16 @@ public class HTTPServerConfiguration {
 	}
 	public void setOfflinePort(Integer offlinePort) {
 		this.offlinePort = offlinePort;
+	}
+
+	@InterfaceFilter(implement = "be.nabu.eai.module.http.server.error.CustomExceptionFormatter.format")
+	@XmlJavaTypeAdapter(value = ArtifactXMLAdapter.class)
+	@Advanced
+	public DefinedService getCustomExceptionFormatter() {
+		return customExceptionFormatter;
+	}
+	public void setCustomExceptionFormatter(DefinedService customExceptionFormatter) {
+		this.customExceptionFormatter = customExceptionFormatter;
 	}
 
 }

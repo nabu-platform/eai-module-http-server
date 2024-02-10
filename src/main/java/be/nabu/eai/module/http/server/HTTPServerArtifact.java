@@ -24,6 +24,7 @@ import javax.security.auth.x500.X500Principal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.nabu.eai.module.http.server.error.CustomExceptionFormatter;
 import be.nabu.eai.module.http.virtual.VirtualHostArtifact;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.RepositoryThreadFactory;
@@ -31,6 +32,7 @@ import be.nabu.eai.repository.api.LicenseManager;
 import be.nabu.eai.repository.api.LicensedRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
+import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.eai.server.Server;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.artifacts.api.TunnelableArtifact;
@@ -58,6 +60,8 @@ import be.nabu.libs.nio.api.ConnectionAcceptor;
 import be.nabu.libs.nio.api.NIOServer;
 import be.nabu.libs.nio.impl.MaxTotalConnectionsAcceptor;
 import be.nabu.libs.resources.api.ResourceContainer;
+import be.nabu.libs.services.api.DefinedService;
+import be.nabu.libs.services.pojo.POJOUtils;
 import be.nabu.utils.cep.impl.ComplexEventImpl;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
@@ -518,4 +522,21 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		finish();
 	}
 	
+	private CustomExceptionFormatter exceptionFormatter;
+	public CustomExceptionFormatter getExceptionFormatter() {
+		if (exceptionFormatter == null) {
+			synchronized(this) {
+				if (exceptionFormatter == null) {		
+					DefinedService customExceptionFormatter = getConfig().getCustomExceptionFormatter();
+					if (customExceptionFormatter != null) {
+						exceptionFormatter = POJOUtils.newProxy(CustomExceptionFormatter.class, getRepository(), SystemPrincipal.ROOT, getRepository().getServiceRunner(), customExceptionFormatter);
+					}
+					else {
+						exceptionFormatter = new CustomExceptionFormatterImpl();
+					}
+				}
+			}
+		}
+		return exceptionFormatter;
+	}
 }

@@ -20,6 +20,7 @@ public class HTTPServerInterfaceLister implements InterfaceLister {
 					descriptions.add(new InterfaceDescriptionImpl("Virtual Host", "Request Rewriter", "be.nabu.eai.module.http.virtual.api.RequestRewriter.handle"));
 					descriptions.add(new InterfaceDescriptionImpl("Virtual Host", "Request Subscriber", "be.nabu.eai.module.http.virtual.api.RequestSubscriber.handle"));
 					descriptions.add(new InterfaceDescriptionImpl("Virtual Host", "Response Rewriter", "be.nabu.eai.module.http.virtual.api.ResponseRewriter.handle"));
+					descriptions.add(new InterfaceDescriptionImpl("HTTP Server", "Exception Formatter", "be.nabu.eai.module.http.server.error.CustomExceptionFormatter.format"));
 					HTTPServerInterfaceLister.descriptions = descriptions;
 				}
 			}

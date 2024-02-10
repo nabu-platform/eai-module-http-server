@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +26,8 @@ import javax.xml.bind.annotation.XmlType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.nabu.eai.module.http.server.error.CustomExceptionFormatter;
+import be.nabu.eai.module.http.server.error.CustomExceptionFormatter.WhitelistLevel;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.Notification;
 import be.nabu.libs.authentication.api.Device;
@@ -199,7 +202,6 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		return null;
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public HTTPResponse format(HTTPRequest request, Exception originalException) {
 		Token token = getToken(originalException);
@@ -216,7 +218,18 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		ServiceException serviceException = getServiceException(exception);
 		
 		// inherit the id from the service exception (if any)
-		Notification notification = serviceException == null ? new Notification() : new Notification(serviceException.getId());
+		
+		// determine the identifier
+		String identifier = serviceException == null ? UUID.randomUUID().toString().replace("-", "") : serviceException.getId();
+		
+		// determine error code
+		String errorCode = serviceException != null ? getWhitelistedCode(serviceException.getCode()) : null;
+		if (errorCode == null && serviceException != null && serviceException.isWhitelisted()) {
+			errorCode = serviceException.getCode() == null ? "HTTP-500" : serviceException.getCode();
+		}
+		// and http code
+		boolean isHTTPCode = serviceException != null && serviceException.getCode().matches("^(4|5)[0-9]{2}$");
+		int httpCode = exception.getCode() == 500 && isHTTPCode ? Integer.parseInt(serviceException.getCode()) : exception.getCode();
 		
 		HTTPComplexEventImpl event = null;
 		if (server.getRepository().getComplexEventDispatcher() != null) {
@@ -268,8 +281,31 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 				event.setSourcePort(sourcePort == null ? null : Integer.parseInt(sourcePort));
 			}
 			event.setSizeIn(MimeUtils.getContentLength(request.getContent().getHeaders()));
+			event.setExternalId(identifier);
+			event.setReason(exception.getDescription() == null ? (serviceException == null ? null : serviceException.getDescription()) : exception.getDescription());
+			if (exception.getContext() != null) {
+				event.setContext(exception.getContext().toString());
+			}
+			else if (serviceException != null) {
+				event.setContext(serviceException.getServiceStack().toString());
+			}
+			if (serviceException != null) {
+				event.setCode(serviceException.getCode());
+			}
+			else {
+				event.setCode("HTTP-" + httpCode);
+			}
+			event.setResponseCode(httpCode);
+			server.getRepository().getComplexEventDispatcher().fire(event, server);
 		}
+
+		logger.error("HTTP Exception " + exception.getCode(), exception);
 		
+		CustomExceptionFormatter exceptionFormatter = server.getExceptionFormatter();
+		return exceptionFormatter.format(request, exception, serviceException, errorCode == null ? WhitelistLevel.NONE : WhitelistLevel.FULL, httpCode, errorCode, identifier);
+		
+		/*
+		Notification notification = serviceException == null ? new Notification() : new Notification(serviceException.getId());
 		ExceptionSummary exceptionSummary = new ExceptionSummary();
 		// get the full stack trace
 		exceptionSummary.setStacktrace(stacktrace(exception));
@@ -279,33 +315,15 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		exceptionSummary.setStatus(exception.getCode());
 		exceptionSummary.setIdentifier(notification.getIdentifier());
 		
-		if (event != null) {
-			event.setReason(exception.getDescription() == null ? (serviceException == null ? null : serviceException.getDescription()) : exception.getDescription());
-			if (exception.getContext() != null) {
-				event.setContext(exception.getContext().toString());
-			}
-			else if (serviceException != null) {
-				event.setContext(serviceException.getServiceStack().toString());
-			}
-		}
-		
-		boolean isHTTPCode = serviceException != null && serviceException.getCode().matches("^4[0-9]{2}$");
-		int httpCode = exception.getCode() == 500 && isHTTPCode ? Integer.parseInt(serviceException.getCode()) : exception.getCode();
 		if (serviceException != null) {
 			exceptionSummary.setCode(serviceException.getCode());
 			exceptionSummary.setMessage(serviceException.getMessage());
 			exceptionSummary.setDescription(serviceException.getDescription());
 			exceptionSummary.setServiceStack(serviceException.getServiceStack());
-			if (event != null) {
-				event.setCode(serviceException.getCode());
-			}
 		}
 		else {
 			exceptionSummary.setCode("HTTP-" + httpCode);
 			exceptionSummary.setMessage(HTTPCodes.getMessage(exception.getCode()) + ": " + exception.getMessage());
-			if (event != null) {
-				event.setCode("HTTP-" + httpCode);
-			}
 		}
 		
 		if (server.getConfig().getErrorInstanceUri() != null) {
@@ -389,15 +407,6 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		response.setType(exceptionSummary.getType());
 		response.setInstance(exceptionSummary.getInstance());
 		
-		if (event != null) {
-			event.setExternalId(notification.getIdentifier());
-		}
-		
-		String whitelistedCode = serviceException != null ? getWhitelistedCode(serviceException.getCode()) : null;
-		if (whitelistedCode == null && serviceException != null && serviceException.isWhitelisted()) {
-			whitelistedCode = serviceException.getCode() == null ? "HTTP-500" : serviceException.getCode();
-		}
-		
 		String responseDescription = null;
 		if (EAIResourceRepository.isDevelopment()) {
 			if (exception.getDescription() != null) {
@@ -419,11 +428,11 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		}
 		
 		// we have a service exception that can be reported
-		if (whitelistedCode != null) {
-			response.setCode(whitelistedCode);
+		if (errorCode != null) {
+			response.setCode(errorCode);
 			// only use the actual message if the code is an exact match
 			// if we are combining multiple codes, we don't want to expose the actual code itself
-			if (whitelistedCode.equals(serviceException.getCode())) {
+			if (errorCode.equals(serviceException.getCode())) {
 				if (useProblemJson) {
 					response.setTitle(serviceException.getPlainMessage());
 				}
@@ -469,7 +478,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		ComplexType resolved = (ComplexType) BeanResolver.getInstance().resolve(StructuredResponse.class);
 		ComplexContent responseContent = new BeanInstance<StructuredResponse>(response);
 		
-		if (serviceException != null && serviceException.getData() != null && whitelistedCode != null) {
+		if (serviceException != null && serviceException.getData() != null && errorCode != null) {
 			DefinedSimpleType<? extends Object> wrap = SimpleTypeWrapperFactory.getInstance().getWrapper().wrap(serviceException.getData().getClass());
 			// we have simple content
 			if (wrap != null) {
@@ -529,7 +538,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		if (event != null) {
 			event.setResponseCode(httpCode);
 			event.setSizeOut((long) bytes.length);
-			server.getRepository().getComplexEventDispatcher().fire(event, server);
+//			server.getRepository().getComplexEventDispatcher().fire(event, server);
 		}
 		PlainMimeContentPart content = new PlainMimeContentPart(null, IOUtils.wrap(bytes, true), 
 			new MimeHeader("Connection", "close"),
@@ -539,6 +548,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		// we can reopen this!
 		content.setReopenable(true);
 		return new ExceptionHTTPResponse(request, httpCode, HTTPCodes.getMessage(exception.getCode()), content, exception, response);
+		*/
 	}
 
 	private String stacktrace(HTTPException exception) {
