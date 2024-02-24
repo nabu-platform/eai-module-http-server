@@ -79,6 +79,7 @@ import be.nabu.utils.mime.impl.PlainMimeContentPart;
 
 /**
  * Retroactively adjusted to support spec: https://tools.ietf.org/html/rfc7807#page-9
+ * new spec: https://www.rfc-editor.org/rfc/rfc9457.html
  * There are some legacy fields that should not be used and removed
  */
 public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequest, HTTPResponse> {
