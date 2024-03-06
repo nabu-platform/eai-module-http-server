@@ -208,6 +208,9 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 		else if (port == null) {
 			port = 80;
 		}
+		if (EAIResourceRepository.isShadow()) {
+			port += EAIResourceRepository.SHADOW_PORT_OFFSET;
+		}
 		if (server != null && server.getPort() != port) {
 			try {
 				stop();
