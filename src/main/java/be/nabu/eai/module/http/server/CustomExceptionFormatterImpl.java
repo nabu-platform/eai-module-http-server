@@ -2,6 +2,8 @@ package be.nabu.eai.module.http.server;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -13,6 +15,7 @@ import be.nabu.eai.module.http.server.RepositoryExceptionFormatter.TemplateMarsh
 import be.nabu.eai.module.http.server.StandardizedError400.ValidationProblem;
 import be.nabu.eai.module.http.server.error.CustomExceptionFormatter;
 import be.nabu.eai.module.http.server.error.StandardizedError;
+import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.libs.converter.ConverterFactory;
 import be.nabu.libs.http.HTTPCodes;
 import be.nabu.libs.http.HTTPException;
@@ -131,6 +134,9 @@ public class CustomExceptionFormatterImpl implements CustomExceptionFormatter {
 			// TODO: potentially translate?
 			standardized.setDetail(serviceException.getDescription());
 		}
+		else if (EAIResourceRepository.isDevelopment() && (serviceException != null || rootException != null)) {
+			standardized.setDetail(RepositoryExceptionFormatter.stacktrace(serviceException == null ? rootException : serviceException));
+		}
 		
 		// set the status
 		standardized.setStatus(httpCode);
@@ -178,7 +184,7 @@ public class CustomExceptionFormatterImpl implements CustomExceptionFormatter {
 			contentType = "application/xml";
 		}
 		if (binding == null) {
-			binding = new TemplateMarshallableBinding("<html><head><title>[${status}] ${title}</title></head><body><h1>[${status}] ${title}</h1><pre>${detail}</pre></body></html>", charset);
+			binding = new TemplateMarshallableBinding("<html><head><title>[${status}] ${title}</title></head><body><h1>[${status}] ${title} (${instance})</h1><pre>${detail}</pre></body></html>", charset);
 		}
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		try {

@@ -552,7 +552,7 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		*/
 	}
 
-	private String stacktrace(HTTPException exception) {
+	public static String stacktrace(Exception exception) {
 		StringWriter stringWriter = new StringWriter();
 		PrintWriter printer = new PrintWriter(stringWriter);
 		exception.printStackTrace(printer);
