@@ -253,7 +253,13 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 				// could not set the request uri... :(
 			}
 			event.setApplicationProtocol(server.isSecure() ? "HTTPS" : "HTTP");
-			event.setArtifactId(server.getId());
+			if (exception != null && exception.getContext() != null && !exception.getContext().isEmpty()) {
+				// the last one should be the most specific
+				event.setArtifactId(exception.getContext().get(exception.getContext().size() - 1));
+			}
+			else {
+				event.setArtifactId(server.getId());
+			}
 			event.setDestinationPort(server.getConfig().getPort());
 			Header header = MimeUtils.getHeader("User-Agent", request.getContent().getHeaders());
 			if (header != null) {
