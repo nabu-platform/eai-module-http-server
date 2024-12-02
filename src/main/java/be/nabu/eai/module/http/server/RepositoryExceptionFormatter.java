@@ -583,12 +583,20 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 		return stringWriter.toString();
 	}
 	
+	// 2024-12-02
+	// the most inner exception is usually of a technical nature which is not informative enough
+	// for this reason by default we search for the most inner implicit service exception, this will add context as to which service it occurred in etc.
+	// however, we recently added "explicit" exceptions where it is a design decision to emit an exception (a throw in blox)
+	// in that case it is the OUTER most explicit exception that we are interested in because that is the outer most design decision that was taken
 	private ServiceException getServiceException(Throwable throwable) {
 		ServiceException serviceException = null;
 		// the deepest service exception (if there are multiple) is what we are interested in
 		while(throwable != null) {
 			if (throwable instanceof ServiceException && ((ServiceException) throwable).getCode() != null) {
 				serviceException = (ServiceException) throwable;
+				if (serviceException.isExplicit()) {
+					return serviceException;
+				}
 			}
 			throwable = throwable.getCause();
 		}
