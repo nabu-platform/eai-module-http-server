@@ -289,6 +289,11 @@ public class HTTPServerArtifact extends JAXBArtifact<HTTPServerConfiguration> im
 									}
 									return null;
 								}
+
+								@Override
+								public String getConversationIdMapping() {
+									return getConfig().getConversationIdHeaderMapping();
+								}
 							},
 							new EventTarget() {
 								@Override

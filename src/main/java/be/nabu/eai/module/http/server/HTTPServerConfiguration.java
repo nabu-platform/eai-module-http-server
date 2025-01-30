@@ -38,7 +38,7 @@ import be.nabu.libs.types.api.annotation.Field;
 import be.nabu.utils.io.SSLServerMode;
 
 @XmlRootElement(name = "httpServer")
-@XmlType(propOrder = { "enabled", "keystore", "defaultAlias", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping", "customExceptionFormatter" })
+@XmlType(propOrder = { "enabled", "keystore", "defaultAlias", "sslServerMode", "port", "offlinePort", "poolSize", "ioPoolSize", "maxTotalConnections", "maxConnectionsPerClient", "maxSizePerRequest", "idleTimeout", "lifetime", "readTimeout", "writeTimeout", "requestLimit", "responseLimit", "maxInitialLineLength", "maxHeaderSize", "maxChunkSize", "proxied", "nabuProxy", "proxyPort", "proxySecure", "redirectTo", "errorTypeUri", "errorInstanceUri", "headerMapping", "customExceptionFormatter", "conversationIdHeaderMapping" })
 public class HTTPServerConfiguration {
 	private Integer port, offlinePort;
 	private KeyStoreArtifact keystore;
@@ -57,6 +57,7 @@ public class HTTPServerConfiguration {
 	private HTTPServerArtifact redirectTo;
 	private String defaultAlias;
 	private DefinedService customExceptionFormatter;
+	private String conversationIdHeaderMapping;
 	
 	private Map<String, String> headerMapping;
 	
@@ -289,6 +290,14 @@ public class HTTPServerConfiguration {
 	}
 	public void setHeaderMapping(Map<String, String> headerMapping) {
 		this.headerMapping = headerMapping;
+	}
+	
+	@Field(group = "Advanced", comment = "You can remap an existing header to be used as conversation id, you can include a regex to capture only part of it, e.g. 'sentry-trace' or 'baggage:.*sentry_trace_id=([\\w]+).*'. The first capturing group is used.")
+	public String getConversationIdHeaderMapping() {
+		return conversationIdHeaderMapping;
+	}
+	public void setConversationIdHeaderMapping(String conversationIdHeaderMapping) {
+		this.conversationIdHeaderMapping = conversationIdHeaderMapping;
 	}
 	
 	@Advanced
