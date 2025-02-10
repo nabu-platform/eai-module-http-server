@@ -319,6 +319,9 @@ public class RepositoryExceptionFormatter implements ExceptionFormatter<HTTPRequ
 			else {
 				event.setCode("HTTP-" + httpCode);
 			}
+			if (serviceException != null) {
+				event.setSourceId(serviceException.getSourceId());
+			}
 			event.setResponseCode(httpCode);
 			server.getRepository().getComplexEventDispatcher().fire(event, server);
 		}
